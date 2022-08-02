@@ -37,10 +37,6 @@ func LoadConfiguration(ctxt context.Context, s backend.Backend, req Configuratio
 		PropertySources: make([]PropertySource, 0),
 	}
 
-	if state.Files == nil {
-		return &source, nil
-	}
-
 	addHandler := newDiscoveryHandler(req, &source)
 
 	/* https://docs.spring.io/spring-cloud-config/docs/current/reference/html/#_quick_start
@@ -74,10 +70,6 @@ func LoadConfiguration(ctxt context.Context, s backend.Backend, req Configuratio
 
 		// For each {application}...
 		for _, eachWantedApplication := range req.Applications {
-			if eachWantedApplication == utils.DefaultApplicationName {
-				continue
-			}
-
 			// Add any matching {application}.yml
 			if filename == eachWantedApplication {
 				if e := addHandler(f); e != nil {
