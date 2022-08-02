@@ -6,7 +6,6 @@ import (
 	"github.com/GlintPay/gccs/backend"
 	gotel "github.com/GlintPay/gccs/otel"
 	"github.com/GlintPay/gccs/utils"
-	"github.com/wolfeidau/unflatten"
 	"strings"
 )
 
@@ -130,13 +129,13 @@ func newDiscoveryHandler(req ConfigurationRequest, source *Source) discoveryHand
 		}
 
 		if req.FlattenHierarchies {
-			mapStructuredData = unflatten.Flatten(mapStructuredData, joinerFunc)
+			mapStructuredData = utils.Flatten(mapStructuredData, joinerFunc)
 
 			if req.FlattenedIndexedLists {
 				flattenedIndexedLists(mapStructuredData)
 
 				// Reflatten just in case
-				mapStructuredData = unflatten.Flatten(mapStructuredData, joinerFunc)
+				mapStructuredData = utils.Flatten(mapStructuredData, joinerFunc)
 			}
 		}
 
