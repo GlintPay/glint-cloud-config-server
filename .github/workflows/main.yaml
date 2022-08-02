@@ -1,0 +1,35 @@
+name: Build & Docker publish
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: generic-runner
+    if: github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Check out repo repo
+        uses: actions/checkout@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          username: ${{ secrets.DOCKER_HUB_USER }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build and upload image
+        run: |
+          make docker-build
+          docker push glintpay/glint-cloud-config-server:latest
+          docker tag glintpay/glint-cloud-config-server:latest glintpay/glint-cloud-config-server:${{ github.run_number }}
+          docker push glintpay/glint-cloud-config-server:${{ github.run_number }}
+
+      - name: Announce new image
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          repository: GlintPay/glint-cloud-config-server-deploy
+          token: ${{ secrets.GLINT_PRIVATE_ACCESS_SECRET }}
+          event-type: new-image
+          client-payload: '{"run_number": "${{ github.run_number }}", "run_id": "${{ github.run_id }}", "sha": "${{ github.sha }}"}'
