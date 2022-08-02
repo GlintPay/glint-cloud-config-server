@@ -3,12 +3,12 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/GlintPay/gccs/backend"
 	"github.com/GlintPay/gccs/config"
 	"github.com/GlintPay/gccs/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/riandyrn/otelchi"
+	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -146,7 +146,7 @@ func (rtr *Routing) handleOutput(w http.ResponseWriter, err error, bytes []byte,
 	_, _ = w.Write(bytes)
 
 	if logResponses {
-		fmt.Println("Response", string(bytes))
+		log.Debug().Msgf("Response: %s", string(bytes))
 	}
 }
 
@@ -155,7 +155,7 @@ func (rtr *Routing) writeError(w http.ResponseWriter, err error, logResponses bo
 	_, _ = w.Write([]byte(err.Error()))
 
 	if logResponses {
-		fmt.Println("Response error", err)
+		log.Debug().Err(err).Msg("Response error")
 	}
 }
 
@@ -201,7 +201,7 @@ func (rtr *Routing) enableOTelForRouter(r chi.Router) error {
 
 	r.Use(otelchi.Middleware(rtr.ServerName, otelchi.WithChiRoutes(rtr.ParentRouter)))
 
-	fmt.Println("OpenTelemetry trace is enabled")
+	log.Info().Msgf("OpenTelemetry trace is enabled")
 	return nil
 }
 

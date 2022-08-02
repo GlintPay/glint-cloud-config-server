@@ -14,6 +14,9 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	promApi "github.com/poblish/promenade/api"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/pkgerrors"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -21,7 +24,6 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 	"golang.org/x/sync/errgroup"
-	"log"
 	"net/http"
 	"os"
 	"sigs.k8s.io/yaml"
@@ -33,7 +35,7 @@ var envConfig = config.Configuration{}
 
 func main() {
 	if err := env.Parse(&envConfig); err != nil {
-		log.Fatalf("Configuration loading failed: %+v\n", err)
+		log.Fatal().Msgf("Configuration loading failed: %+v", err)
 	}
 
 	appConfig := config.ApplicationConfiguration{}
@@ -42,6 +44,8 @@ func main() {
 	metrics := promApi.NewMetrics(promApi.MetricOpts{MetricNamePrefix: serviceName})
 	appConfig.Prometheus.Metrics = &metrics
 	//}
+
+	setUpLogger()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -53,7 +57,7 @@ func main() {
 
 	for _, each := range backends {
 		if backendErr := each.Init(ctx, appConfig, appConfig.Prometheus.Metrics); backendErr != nil {
-			log.Fatal("Backend init failed", backendErr)
+			log.Fatal().Stack().Err(backendErr).Msg("Backend init failed")
 		}
 	}
 
@@ -61,7 +65,7 @@ func main() {
 
 	traceShutdown, e := setupTracing(ctx, appConfig)
 	if e != nil {
-		log.Fatalf("Trace setup failed: %s", e)
+		log.Fatal().Stack().Err(e).Msg("Trace setup failed")
 	}
 	defer traceShutdown()
 
@@ -76,7 +80,7 @@ func main() {
 			appConfig.Server.Port = 80
 		}
 		port := fmt.Sprintf(":%d", appConfig.Server.Port)
-		fmt.Println("Listening on", port)
+		log.Info().Msgf("Listening on %s", port)
 		if err := http.ListenAndServe(port, router); err != nil {
 			return fmt.Errorf("http server: %w", err)
 		}
@@ -85,23 +89,26 @@ func main() {
 
 	err := g.Wait()
 	if err != nil {
-		log.Fatalf("startup failed: %s", err)
+		log.Fatal().Stack().Err(err).Msg("startup failed")
 	}
+}
+
+func setUpLogger() {
+	zerolog.TimeFieldFormat = "2006-01-02T15:04:05.000"
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 }
 
 func readConfig(filePath string, config *config.ApplicationConfiguration) {
 	yamlFile, err := os.ReadFile(filePath)
 	if err == nil {
-		fmt.Println("Loading YAML config from", utils.FriendlyFileName(filePath))
+		log.Debug().Msgf("Loading YAML config from %s", utils.FriendlyFileName(filePath))
 		err = yaml.Unmarshal(yamlFile, config)
 		if err != nil {
-			log.Fatalf("Unmarshal: %v", err)
+			log.Fatal().Stack().Err(err).Msg("Unmarshal")
 		}
 	} else {
 		log.Printf("No config file found: %s", utils.FriendlyFileName(filePath))
 	}
-
-	//fmt.Printf("%+v\n", config)
 }
 
 var emptyShutdown = func() {}
@@ -121,7 +128,7 @@ func setupTracing(ctx context.Context, config config.ApplicationConfiguration) (
 		),
 	)
 	if err != nil {
-		log.Fatalf("failed to create resource %v", err)
+		log.Fatal().Stack().Err(err).Msg("failed to create resource")
 	}
 
 	traceExporter, err := otlptracehttp.New(ctx,
@@ -142,11 +149,11 @@ func setupTracing(ctx context.Context, config config.ApplicationConfiguration) (
 	otel.SetTracerProvider(tracerProvider)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
-	fmt.Printf("OpenTelemetry export is enabled, to: %s\n", config.Tracing.Endpoint)
+	log.Info().Msgf("OpenTelemetry export is enabled, to: %s", config.Tracing.Endpoint)
 
 	return func() {
 		if err = tracerProvider.Shutdown(ctx); err != nil {
-			log.Fatalf("failed to shutdown TracerProvider %v", err)
+			log.Fatal().Stack().Err(err).Msg("failed to shutdown TracerProvider")
 		}
 	}, nil
 }
@@ -165,12 +172,12 @@ func setupRouter(config config.ApplicationConfiguration, backends backend.Backen
 
 	router.Route("/", func(r chi.Router) {
 		if e := routing.SetupFunctionalRoutes(r); e != nil {
-			log.Fatal(e)
+			log.Fatal().Stack().Err(e).Msg("route setup failed")
 		}
 	})
 
 	if len(config.Prometheus.Path) > 0 {
-		fmt.Println("Registering metrics endpoint at:", config.Prometheus.Path)
+		log.Info().Msgf("Registering metrics endpoint at: %s", config.Prometheus.Path)
 		router.Handle(config.Prometheus.Path, promhttp.Handler())
 	}
 

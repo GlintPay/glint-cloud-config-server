@@ -6,11 +6,12 @@ import (
 	"github.com/GlintPay/gccs/backend"
 	gotel "github.com/GlintPay/gccs/otel"
 	"github.com/GlintPay/gccs/utils"
+	"github.com/rs/zerolog/log"
 	"strings"
 )
 
 func LoadConfiguration(ctxt context.Context, s backend.Backend, req ConfigurationRequest) (*Source, error) {
-	fmt.Printf("Requesting: %s/%s/[%s]\n", req.Applications, req.Profiles, req.Labels)
+	log.Debug().Msgf("Requesting: %s/%s/[%s]", req.Applications, req.Profiles, req.Labels)
 
 	if req.EnableTrace {
 		_, span := gotel.GetTracer(ctxt).Start(ctxt, "loadConfiguration", gotel.ServerOptions)
@@ -121,8 +122,6 @@ var joinerFunc = func(k []string) string {
 
 func newDiscoveryHandler(req ConfigurationRequest, source *Source) discoveryHandler {
 	return func(f backend.File) error {
-		// fmt.Println("Discovered", f.Name)
-
 		mapStructuredData, err := f.ToMap()
 		if err != nil {
 			return err

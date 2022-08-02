@@ -12,6 +12,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	promApi "github.com/poblish/promenade/api"
+	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 	"path/filepath"
@@ -19,8 +20,6 @@ import (
 )
 
 func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfiguration, metrics promApi.PrometheusMetrics) error {
-	//fmt.Printf("config %+v\n", config)
-
 	s.Config = config.Git
 	s.Metrics = metrics
 
@@ -37,7 +36,7 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 	s.PublicKeys.HostKeyCallback = hostKeyCallback
 
 	if s.Config.CloneOnStart {
-		fmt.Println("Clone on startup...")
+		log.Debug().Msg("Clone on startup...")
 
 		if e := s.connect(ctxt, "", !s.Config.DisableBaseDirCleaning); e != nil {
 			return e
@@ -49,7 +48,7 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 
 func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting bool) error {
 	if s.Config.Basedir != "" && cleanExisting {
-		fmt.Println("Cleaning existing...")
+		log.Debug().Msg("Cleaning existing...")
 
 		err := os.RemoveAll(s.Config.Basedir)
 		if err != nil {
@@ -79,7 +78,7 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 			return err
 		}
 
-		fmt.Println("Cloned OK")
+		log.Debug().Msg("Cloned OK")
 	} else if err != nil {
 		return err
 	} else {
@@ -106,7 +105,7 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 
 		err = w.Checkout(coOpts)
 		if err == nil {
-			fmt.Printf("Checked out local [%s] OK\n", branch)
+			log.Debug().Msgf("Checked out local [%s] OK", branch)
 		} else {
 			mirrorRemoteBranchRefSpec := fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch)
 			if err = fetchOrigin(repo, s.PublicKeys, mirrorRemoteBranchRefSpec); err != nil {
@@ -117,7 +116,7 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 				return err
 			}
 
-			fmt.Printf("Checked out remote [%s] OK\n", branch)
+			log.Debug().Msgf("Checked out remote [%s] OK", branch)
 			return nil
 		}
 
@@ -131,7 +130,7 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 			return err
 		}
 
-		fmt.Println("Pulled OK")
+		log.Debug().Msgf("Pulled OK")
 	}
 
 	s.Repo = repo
@@ -156,7 +155,7 @@ func fetchOrigin(repo *goGit.Repository, publicKeys *ssh.PublicKeys, refSpecStr 
 		Auth:     publicKeys,
 	}); err != nil {
 		if err == goGit.NoErrAlreadyUpToDate {
-			fmt.Print("refs already up to date")
+			log.Debug().Msgf("refs already up to date")
 		} else {
 			return fmt.Errorf("fetch origin failed: %v", err)
 		}

@@ -2,9 +2,9 @@ package api
 
 import (
 	"context"
-	"fmt"
 	gotel "github.com/GlintPay/gccs/otel"
 	"github.com/GlintPay/gccs/utils"
+	"github.com/rs/zerolog/log"
 	"reflect"
 	"regexp"
 	"sort"
@@ -57,7 +57,7 @@ func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []
 	}
 
 	if len(f.pointlessOverrides) > 0 {
-		fmt.Println("Unnecessary overrides were found:", f.pointlessOverrides)
+		log.Info().Msgf("Unnecessary overrides were found: %v", f.pointlessOverrides)
 	}
 
 	return reconciled, ResolutionMetadata{
@@ -93,7 +93,7 @@ func resolveString(allValues ResolvedConfigValues, propertyName string, value st
 				return resolvedPropertyValue.(string)
 			} else if len(sourcePropertyWithDefault) < 2 {
 				// No match, no default
-				fmt.Printf("Missing value for property [%s]\n", sourcePropertyWithDefault[0])
+				log.Warn().Msgf("Missing value for property [%s]", sourcePropertyWithDefault[0])
 			} else if len(sourcePropertyWithDefault) > 1 {
 				// No match, use available default
 				return sourcePropertyWithDefault[1]
@@ -101,7 +101,7 @@ func resolveString(allValues ResolvedConfigValues, propertyName string, value st
 		}
 
 		// ${} is not acceptable
-		fmt.Printf("Missing placeholder [%s] for property [%s]\n", foundMatch, propertyName)
+		log.Warn().Msgf("Missing placeholder [%s] for property [%s]", foundMatch, propertyName)
 		return ""
 	})
 }
@@ -117,11 +117,9 @@ func (f *Resolver) overrideValue(reconciled map[string]interface{}, k string, v 
 	// Special treatment for Maps
 	if vKind == reflect.Map {
 		m := reconciled[k].(map[string]interface{})
-		// fmt.Println(k, "... was ", m)
 		for ck, cv := range v.(map[string]interface{}) {
 			m[ck] = cv
 		}
-		// fmt.Println(k, "...", m)
 		return
 	}
 

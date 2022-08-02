@@ -1,8 +1,8 @@
 package filetypes
 
 import (
-	"fmt"
 	"github.com/GlintPay/gccs/backend"
+	"github.com/rs/zerolog/log"
 	"io"
 	"io/ioutil"
 	"sigs.k8s.io/yaml"
@@ -30,7 +30,7 @@ func ToBytes(f backend.File) ([]byte, error) {
 
 	defer func(reader io.ReadCloser) {
 		if e := reader.Close(); e != nil {
-			fmt.Println(e)
+			log.Error().Err(e).Msg("close")
 		}
 	}(reader)
 
