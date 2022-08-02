@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	applicationJson = "application/json"
+	applicationJSON = "application/json"
 )
 
 type Routing struct {
@@ -142,7 +142,7 @@ func (rtr *Routing) handleOutput(w http.ResponseWriter, err error, bytes []byte,
 		return
 	}
 
-	w.Header().Set("Content-Type", applicationJson)
+	w.Header().Set("Content-Type", applicationJSON)
 	_, _ = w.Write(bytes)
 
 	if logResponses {

@@ -2,7 +2,7 @@ package api
 
 import "fmt"
 
-//Represent an explicit override that has no effect and can be removed
+// Represent an explicit override that has no effect and can be removed
 type duplicate struct {
 	key    string
 	value  interface{}

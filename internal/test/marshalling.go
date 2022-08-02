@@ -13,14 +13,14 @@ const DecimalSuffix = "_Decimal"
 const DurationSuffix = "_Duration"
 const StringSuffix = "_String"
 
-//MarshalFlattenedTo Marshal a map of properties to a result structure without unflattening any
+// MarshalFlattenedTo Marshal a map of properties to a result structure without unflattening any
 // hierarchical property names, e.g. `service.host: foo` and `service.port: 123` are not combined
 // under a common parent. `mapstructure` metadata may be required for this to work.
 func MarshalFlattenedTo(v map[string]interface{}, outputStruct interface{}) error {
 	return marshalTo(v, outputStruct)
 }
 
-//MarshalHierarchicalTo Marshal a map of properties to a result structure, restructuring
+// MarshalHierarchicalTo Marshal a map of properties to a result structure, restructuring
 // hierarchical properties, such that `service.host: foo` and `service.port: 123` are grouped
 // under a common parent. This may require a set of nested structures to be defined.
 func MarshalHierarchicalTo(v map[string]interface{}, outputStruct interface{}) error {

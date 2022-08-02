@@ -613,7 +613,7 @@ func Test_routesResponseLoggingEnabled(t *testing.T) {
 	}
 }
 
-func validateRequest(t *testing.T, tt ExampleRequest, jsonOutput string, router *chi.Mux, urlSuffix string) {
+func validateRequest(t *testing.T, tt ExampleRequest, jsonOutput string, router http.Handler, urlSuffix string) {
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(tt.method, tt.url+urlSuffix, tt.body) // don't refresh git
 

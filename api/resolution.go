@@ -72,9 +72,9 @@ func resolvePlaceholders(allValues ResolvedConfigValues, currentMap map[string]i
 			resolvePlaceholders(allValues, typedVal)
 		case []string:
 			// FIXME Incomplete
-			//for propertyName, v := range reconciled {
+			// for propertyName, v := range reconciled {
 			//	resolvePlaceholders(typedVal)
-			//}
+			// }
 		case string:
 			currentMap[propertyName] = resolveString(allValues, propertyName, typedVal)
 		}

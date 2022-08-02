@@ -33,9 +33,8 @@ func (ps Sorter) Sort() func(i, j int) bool {
 				leftProfileIdx := profileIndex(ps.Profiles, adjustedLeftName)
 				rightProfileIdx := profileIndex(ps.Profiles, adjustedRightName)
 				return leftProfileIdx > rightProfileIdx
-			} else {
-				return true
 			}
+			return true
 		}
 
 		// Now to resolve the different app / profile combinations

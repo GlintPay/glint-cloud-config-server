@@ -219,7 +219,7 @@ func Test_MarshalHierarchicalTo(t *testing.T) {
 	err := test.MarshalHierarchicalTo(resolved, &hierConfig)
 	assert.NoError(t, err)
 
-	assert.Equal(t, hierConfig, TestHierarchicalConfig{Glint: Glint{A: "b", B: "c", C: "d", Name: "Production"}, MyService: MyService{Host: "production", Url: "https://production.glintpay.com"}, Owner: "Mine", Type: "backend", X: X{Y: Y{Z: 123}}})
+	assert.Equal(t, hierConfig, TestHierarchicalConfig{Glint: Glint{A: "b", B: "c", C: "d", Name: "Production"}, MyService: MyService{Host: "production", URL: "https://production.glintpay.com"}, Owner: "Mine", Type: "backend", X: X{Y: Y{Z: 123}}})
 }
 
 func Test_MarshalFlattenedTo(t *testing.T) {
@@ -240,7 +240,7 @@ func Test_MarshalFlattenedTo(t *testing.T) {
 	err := test.MarshalFlattenedTo(resolved, &flattenedConfig)
 	assert.NoError(t, err)
 
-	assert.Equal(t, flattenedConfig, TestFlattenedConfig{A: "b", B: "c", C: "d", Name: "Production", Host: "production", Url: "https://production.glintpay.com", Owner: "Mine", Type: "backend", Num: 123})
+	assert.Equal(t, flattenedConfig, TestFlattenedConfig{A: "b", B: "c", C: "d", Name: "Production", Host: "production", URL: "https://production.glintpay.com", Owner: "Mine", Type: "backend", Num: 123})
 }
 
 func Test_emptyPropertySource(t *testing.T) {
@@ -287,7 +287,7 @@ type Glint struct {
 
 type MyService struct {
 	Host string
-	Url  string
+	URL  string
 }
 
 type TestFlattenedConfig struct {
@@ -296,7 +296,7 @@ type TestFlattenedConfig struct {
 	C     string `from:"g.c"`
 	Name  string `from:"g.name"`
 	Host  string `from:"myService.host"`
-	Url   string `from:"myService.url"`
+	URL   string `from:"myService.url"`
 	Owner string
 	Type  string
 	Num   int16 `from:"x.y.z"`

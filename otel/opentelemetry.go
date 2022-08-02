@@ -13,9 +13,8 @@ const InstrumentationName = "github.com/GlintPay/glint-cloud-config-server"
 func GetTracer(ctx context.Context) trace.Tracer {
 	if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
 		return newTracer(span.TracerProvider())
-	} else {
-		return newTracer(otel.GetTracerProvider())
 	}
+	return newTracer(otel.GetTracerProvider())
 }
 
 func newTracer(tp trace.TracerProvider) trace.Tracer {
