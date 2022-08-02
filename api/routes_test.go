@@ -65,7 +65,7 @@ func Test_routesHierarchical(t *testing.T) {
 			method:     "GET",
 			url:        "/accounts/production?resolve=true&norefresh", // don't refresh git
 			statusCode: 200,
-			jsonOutput: `{"a":"b123","accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"b":"c234","c":"d344","currencies":["USD","EUR","ABC"],"site":{"interval":5,"retries":5,"timeout":5,"url":"https://live.com"}}`,
+			jsonOutput: `{"a":"b123","accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"b":"c234","c":"d344","currencies":["USD","EUR","ABC"],"site":{"interval":5,"retries":5,"timeout":5,"url":"https://live.com"},"supportedCurrencies":{"ABC":{},"EUR":{},"GBP":{}}}`,
 			headers: http.Header{
 				"Content-Type":                          []string{"application/json"},
 				"X-Resolution-Version":                  []string{expectedVersion},
@@ -101,6 +101,11 @@ func Test_routesHierarchical(t *testing.T) {
     "retries": 5,
     "timeout": 5,
     "url": "https://live.com"
+  },
+  "supportedCurrencies": {
+    "ABC": {},
+    "EUR": {},
+    "GBP": {}
   }
 }`,
 			headers: http.Header{
@@ -116,7 +121,7 @@ func Test_routesHierarchical(t *testing.T) {
 			method:     "GET",
 			url:        "/accounts/production?resolve=true&norefresh&logResponses=true", // don't refresh git
 			statusCode: 200,
-			jsonOutput: `{"a":"b123","accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"b":"c234","c":"d344","currencies":["USD","EUR","ABC"],"site":{"interval":5,"retries":5,"timeout":5,"url":"https://live.com"}}`,
+			jsonOutput: `{"a":"b123","accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"b":"c234","c":"d344","currencies":["USD","EUR","ABC"],"site":{"interval":5,"retries":5,"timeout":5,"url":"https://live.com"},"supportedCurrencies":{"ABC":{},"EUR":{},"GBP":{}}}`,
 			headers: http.Header{
 				"Content-Type":                          []string{"application/json"},
 				"X-Resolution-Version":                  []string{expectedVersion},
@@ -144,7 +149,7 @@ func Test_routesHierarchical(t *testing.T) {
 			method:     "GET",
 			url:        "/accounts/local?resolve=true&norefresh", // don't refresh git
 			statusCode: 200,
-			jsonOutput: `{"a":"b","accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"b":"c","c":"d","currencies":["USD","EUR","ABC"],"site":{"retries":0,"timeout":50,"url":"https://test.com"}}`,
+			jsonOutput: `{"a":"b","accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"b":"c","c":"d","currencies":["USD","EUR","ABC"],"site":{"retries":0,"timeout":50,"url":"https://test.com"},"supportedCurrencies":{"ABC":{},"EUR":{},"GBP":{}}}`,
 			headers: http.Header{
 				"Content-Type":                          []string{"application/json"},
 				"X-Resolution-Version":                  []string{expectedVersion},
@@ -186,21 +191,21 @@ func Test_routesHierarchical(t *testing.T) {
 			method:     "GET",
 			url:        "/accounts/local?norefresh", // don't refresh git
 			statusCode: 200,
-			jsonOutput: `{"name":"accounts","profiles":["local"],"label":"","version":"` + expectedVersion + `","state":"","propertySources":[{"name":"/accounts.yaml","source":{"accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"currencies":["USD","EUR","ABC"],"site":{"retries":0,"timeout":50,"url":"https://test.com"}}},{"name":"/application.yaml","source":{"a":"b","b":"c","c":"d"}}]}`,
+			jsonOutput: `{"name":"accounts","profiles":["local"],"label":"","version":"` + expectedVersion + `","state":"","propertySources":[{"name":"/accounts.yaml","source":{"accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"currencies":["USD","EUR","ABC"],"site":{"retries":0,"timeout":50,"url":"https://test.com"},"supportedCurrencies":{"ABC":{},"EUR":{},"GBP":{}}}},{"name":"/application.yaml","source":{"a":"b","b":"c","c":"d"}}]}`,
 			headers:    http.Header{"Content-Type": []string{"application/json"}},
 		},
 		{
 			method:     "GET",
 			url:        "/accounts/other,local?norefresh", // don't refresh git
 			statusCode: 200,
-			jsonOutput: `{"name":"accounts","profiles":["other","local"],"label":"","version":"` + expectedVersion + `","state":"","propertySources":[{"name":"/accounts.yaml","source":{"accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"currencies":["USD","EUR","ABC"],"site":{"retries":0,"timeout":50,"url":"https://test.com"}}},{"name":"/application-other.yaml","source":{"a":"b1","c":"d2"}},{"name":"/application.yaml","source":{"a":"b","b":"c","c":"d"}}]}`,
+			jsonOutput: `{"name":"accounts","profiles":["other","local"],"label":"","version":"` + expectedVersion + `","state":"","propertySources":[{"name":"/accounts.yaml","source":{"accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"currencies":["USD","EUR","ABC"],"site":{"retries":0,"timeout":50,"url":"https://test.com"},"supportedCurrencies":{"ABC":{},"EUR":{},"GBP":{}}}},{"name":"/application-other.yaml","source":{"a":"b1","c":"d2"}},{"name":"/application.yaml","source":{"a":"b","b":"c","c":"d"}}]}`,
 			headers:    http.Header{"Content-Type": []string{"application/json"}},
 		},
 		{
 			method:     "GET",
 			url:        "/accounts/other,local?resolve=true&norefresh", // don't refresh git
 			statusCode: 200,
-			jsonOutput: `{"a":"b1","accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"b":"c","c":"d2","currencies":["USD","EUR","ABC"],"site":{"retries":0,"timeout":50,"url":"https://test.com"}}`,
+			jsonOutput: `{"a":"b1","accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"b":"c","c":"d2","currencies":["USD","EUR","ABC"],"site":{"retries":0,"timeout":50,"url":"https://test.com"},"supportedCurrencies":{"ABC":{},"EUR":{},"GBP":{}}}`,
 			headers: http.Header{
 				"Content-Type":                          []string{"application/json"},
 				"X-Resolution-Version":                  []string{expectedVersion},
@@ -214,7 +219,7 @@ func Test_routesHierarchical(t *testing.T) {
 			method:     "GET",
 			url:        "/accounts,security/other,local?resolve=true&norefresh", // don't refresh git
 			statusCode: 200,
-			jsonOutput: `{"a":"b1","accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"b":"c","c":"d2","currencies":["USD","EUR","ABC"],"password":"test123","site":{"retries":0,"timeout":50,"url":"https://test.com"}}`,
+			jsonOutput: `{"a":"b1","accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"b":"c","c":"d2","currencies":["USD","EUR","ABC"],"password":"test123","site":{"retries":0,"timeout":50,"url":"https://test.com"},"supportedCurrencies":{"ABC":{},"EUR":{},"GBP":{}}}`,
 			headers: http.Header{
 				"Content-Type":                          []string{"application/json"},
 				"X-Resolution-Version":                  []string{expectedVersion},
@@ -278,8 +283,8 @@ func Test_routesFlattened(t *testing.T) {
 			method:        "GET",
 			url:           "/accounts/production?resolve=true&norefresh", // don't refresh git
 			statusCode:    200,
-			jsonOutput:    `{"a":"b123","accountstuff.currencies":["DEF","GHI","JKL"],"accountstuff.val":"xxx","b":"c234","c":"d344","currencies":["USD","EUR","ABC"],"site.interval":5,"site.retries":5,"site.timeout":5,"site.url":"https://live.com"}`,
-			jsonOutputAlt: `{"a":"b123","accountstuff.currencies[0]":"DEF","accountstuff.currencies[1]":"GHI","accountstuff.currencies[2]":"JKL","accountstuff.val":"xxx","b":"c234","c":"d344","currencies[0]":"USD","currencies[1]":"EUR","currencies[2]":"ABC","site.interval":5,"site.retries":5,"site.timeout":5,"site.url":"https://live.com"}`,
+			jsonOutput:    `{"a":"b123","accountstuff.currencies":["DEF","GHI","JKL"],"accountstuff.val":"xxx","b":"c234","c":"d344","currencies":["USD","EUR","ABC"],"site.interval":5,"site.retries":5,"site.timeout":5,"site.url":"https://live.com","supportedCurrencies.ABC":{},"supportedCurrencies.EUR":{},"supportedCurrencies.GBP":{}}`,
+			jsonOutputAlt: `{"a":"b123","accountstuff.currencies[0]":"DEF","accountstuff.currencies[1]":"GHI","accountstuff.currencies[2]":"JKL","accountstuff.val":"xxx","b":"c234","c":"d344","currencies[0]":"USD","currencies[1]":"EUR","currencies[2]":"ABC","site.interval":5,"site.retries":5,"site.timeout":5,"site.url":"https://live.com","supportedCurrencies.ABC":{},"supportedCurrencies.EUR":{},"supportedCurrencies.GBP":{}}`,
 			headers: http.Header{
 				"Content-Type":                          []string{"application/json"},
 				"X-Resolution-Version":                  []string{expectedVersion},
@@ -308,8 +313,8 @@ func Test_routesFlattened(t *testing.T) {
 			method:        "GET",
 			url:           "/accounts/local?resolve=true&norefresh", // don't refresh git
 			statusCode:    200,
-			jsonOutput:    `{"a":"b","accountstuff.currencies":["DEF","GHI","JKL"],"accountstuff.val":"xxx","b":"c","c":"d","currencies":["USD","EUR","ABC"],"site.retries":0,"site.timeout":50,"site.url":"https://test.com"}`,
-			jsonOutputAlt: `{"a":"b","accountstuff.currencies[0]":"DEF","accountstuff.currencies[1]":"GHI","accountstuff.currencies[2]":"JKL","accountstuff.val":"xxx","b":"c","c":"d","currencies[0]":"USD","currencies[1]":"EUR","currencies[2]":"ABC","site.retries":0,"site.timeout":50,"site.url":"https://test.com"}`,
+			jsonOutput:    `{"a":"b","accountstuff.currencies":["DEF","GHI","JKL"],"accountstuff.val":"xxx","b":"c","c":"d","currencies":["USD","EUR","ABC"],"site.retries":0,"site.timeout":50,"site.url":"https://test.com","supportedCurrencies.ABC":{},"supportedCurrencies.EUR":{},"supportedCurrencies.GBP":{}}`,
+			jsonOutputAlt: `{"a":"b","accountstuff.currencies[0]":"DEF","accountstuff.currencies[1]":"GHI","accountstuff.currencies[2]":"JKL","accountstuff.val":"xxx","b":"c","c":"d","currencies[0]":"USD","currencies[1]":"EUR","currencies[2]":"ABC","site.retries":0,"site.timeout":50,"site.url":"https://test.com","supportedCurrencies.ABC":{},"supportedCurrencies.EUR":{},"supportedCurrencies.GBP":{}}`,
 			headers: http.Header{
 				"Content-Type":                          []string{"application/json"},
 				"X-Resolution-Version":                  []string{expectedVersion},
@@ -351,24 +356,24 @@ func Test_routesFlattened(t *testing.T) {
 			method:        "GET",
 			url:           "/accounts/local?norefresh", // don't refresh git
 			statusCode:    200,
-			jsonOutput:    `{"name":"accounts","profiles":["local"],"label":"","version":"` + expectedVersion + `","state":"","propertySources":[{"name":"/accounts.yaml","source":{"accountstuff.currencies":["DEF","GHI","JKL"],"accountstuff.val":"xxx","currencies":["USD","EUR","ABC"],"site.retries":0,"site.timeout":50,"site.url":"https://test.com"}},{"name":"/application.yaml","source":{"a":"b","b":"c","c":"d"}}]}`,
-			jsonOutputAlt: `{"name":"accounts","profiles":["local"],"label":"","version":"` + expectedVersion + `","state":"","propertySources":[{"name":"/accounts.yaml","source":{"accountstuff.currencies[0]":"DEF","accountstuff.currencies[1]":"GHI","accountstuff.currencies[2]":"JKL","accountstuff.val":"xxx","currencies[0]":"USD","currencies[1]":"EUR","currencies[2]":"ABC","site.retries":0,"site.timeout":50,"site.url":"https://test.com"}},{"name":"/application.yaml","source":{"a":"b","b":"c","c":"d"}}]}`,
+			jsonOutput:    `{"name":"accounts","profiles":["local"],"label":"","version":"` + expectedVersion + `","state":"","propertySources":[{"name":"/accounts.yaml","source":{"accountstuff.currencies":["DEF","GHI","JKL"],"accountstuff.val":"xxx","currencies":["USD","EUR","ABC"],"site.retries":0,"site.timeout":50,"site.url":"https://test.com","supportedCurrencies.ABC":{},"supportedCurrencies.EUR":{},"supportedCurrencies.GBP":{}}},{"name":"/application.yaml","source":{"a":"b","b":"c","c":"d"}}]}`,
+			jsonOutputAlt: `{"name":"accounts","profiles":["local"],"label":"","version":"` + expectedVersion + `","state":"","propertySources":[{"name":"/accounts.yaml","source":{"accountstuff.currencies[0]":"DEF","accountstuff.currencies[1]":"GHI","accountstuff.currencies[2]":"JKL","accountstuff.val":"xxx","currencies[0]":"USD","currencies[1]":"EUR","currencies[2]":"ABC","site.retries":0,"site.timeout":50,"site.url":"https://test.com","supportedCurrencies.ABC":{},"supportedCurrencies.EUR":{},"supportedCurrencies.GBP":{}}},{"name":"/application.yaml","source":{"a":"b","b":"c","c":"d"}}]}`,
 			headers:       http.Header{"Content-Type": []string{"application/json"}},
 		},
 		{
 			method:        "GET",
 			url:           "/accounts/other,local?resolve=false&norefresh", // don't refresh git
 			statusCode:    200,
-			jsonOutput:    `{"name":"accounts","profiles":["other","local"],"label":"","version":"` + expectedVersion + `","state":"","propertySources":[{"name":"/accounts.yaml","source":{"accountstuff.currencies":["DEF","GHI","JKL"],"accountstuff.val":"xxx","currencies":["USD","EUR","ABC"],"site.retries":0,"site.timeout":50,"site.url":"https://test.com"}},{"name":"/application-other.yaml","source":{"a":"b1","c":"d2"}},{"name":"/application.yaml","source":{"a":"b","b":"c","c":"d"}}]}`,
-			jsonOutputAlt: `{"name":"accounts","profiles":["other","local"],"label":"","version":"` + expectedVersion + `","state":"","propertySources":[{"name":"/accounts.yaml","source":{"accountstuff.currencies[0]":"DEF","accountstuff.currencies[1]":"GHI","accountstuff.currencies[2]":"JKL","accountstuff.val":"xxx","currencies[0]":"USD","currencies[1]":"EUR","currencies[2]":"ABC","site.retries":0,"site.timeout":50,"site.url":"https://test.com"}},{"name":"/application-other.yaml","source":{"a":"b1","c":"d2"}},{"name":"/application.yaml","source":{"a":"b","b":"c","c":"d"}}]}`,
+			jsonOutput:    `{"name":"accounts","profiles":["other","local"],"label":"","version":"` + expectedVersion + `","state":"","propertySources":[{"name":"/accounts.yaml","source":{"accountstuff.currencies":["DEF","GHI","JKL"],"accountstuff.val":"xxx","currencies":["USD","EUR","ABC"],"site.retries":0,"site.timeout":50,"site.url":"https://test.com","supportedCurrencies.ABC":{},"supportedCurrencies.EUR":{},"supportedCurrencies.GBP":{}}},{"name":"/application-other.yaml","source":{"a":"b1","c":"d2"}},{"name":"/application.yaml","source":{"a":"b","b":"c","c":"d"}}]}`,
+			jsonOutputAlt: `{"name":"accounts","profiles":["other","local"],"label":"","version":"` + expectedVersion + `","state":"","propertySources":[{"name":"/accounts.yaml","source":{"accountstuff.currencies[0]":"DEF","accountstuff.currencies[1]":"GHI","accountstuff.currencies[2]":"JKL","accountstuff.val":"xxx","currencies[0]":"USD","currencies[1]":"EUR","currencies[2]":"ABC","site.retries":0,"site.timeout":50,"site.url":"https://test.com","supportedCurrencies.ABC":{},"supportedCurrencies.EUR":{},"supportedCurrencies.GBP":{}}},{"name":"/application-other.yaml","source":{"a":"b1","c":"d2"}},{"name":"/application.yaml","source":{"a":"b","b":"c","c":"d"}}]}`,
 			headers:       http.Header{"Content-Type": []string{"application/json"}},
 		},
 		{
 			method:        "GET",
 			url:           "/accounts/other,local?resolve=true&norefresh", // don't refresh git
 			statusCode:    200,
-			jsonOutput:    `{"a":"b1","accountstuff.currencies":["DEF","GHI","JKL"],"accountstuff.val":"xxx","b":"c","c":"d2","currencies":["USD","EUR","ABC"],"site.retries":0,"site.timeout":50,"site.url":"https://test.com"}`,
-			jsonOutputAlt: `{"a":"b1","accountstuff.currencies[0]":"DEF","accountstuff.currencies[1]":"GHI","accountstuff.currencies[2]":"JKL","accountstuff.val":"xxx","b":"c","c":"d2","currencies[0]":"USD","currencies[1]":"EUR","currencies[2]":"ABC","site.retries":0,"site.timeout":50,"site.url":"https://test.com"}`,
+			jsonOutput:    `{"a":"b1","accountstuff.currencies":["DEF","GHI","JKL"],"accountstuff.val":"xxx","b":"c","c":"d2","currencies":["USD","EUR","ABC"],"site.retries":0,"site.timeout":50,"site.url":"https://test.com","supportedCurrencies.ABC":{},"supportedCurrencies.EUR":{},"supportedCurrencies.GBP":{}}`,
+			jsonOutputAlt: `{"a":"b1","accountstuff.currencies[0]":"DEF","accountstuff.currencies[1]":"GHI","accountstuff.currencies[2]":"JKL","accountstuff.val":"xxx","b":"c","c":"d2","currencies[0]":"USD","currencies[1]":"EUR","currencies[2]":"ABC","site.retries":0,"site.timeout":50,"site.url":"https://test.com","supportedCurrencies.ABC":{},"supportedCurrencies.EUR":{},"supportedCurrencies.GBP":{}}`,
 			headers: http.Header{
 				"Content-Type":                          []string{"application/json"},
 				"X-Resolution-Version":                  []string{expectedVersion},
@@ -382,8 +387,8 @@ func Test_routesFlattened(t *testing.T) {
 			method:        "GET",
 			url:           "/accounts,security/other,local?resolve=true&norefresh", // don't refresh git
 			statusCode:    200,
-			jsonOutput:    `{"a":"b1","accountstuff.currencies":["DEF","GHI","JKL"],"accountstuff.val":"xxx","b":"c","c":"d2","currencies":["USD","EUR","ABC"],"password":"test123","site.retries":0,"site.timeout":50,"site.url":"https://test.com"}`,
-			jsonOutputAlt: `{"a":"b1","accountstuff.currencies[0]":"DEF","accountstuff.currencies[1]":"GHI","accountstuff.currencies[2]":"JKL","accountstuff.val":"xxx","b":"c","c":"d2","currencies[0]":"USD","currencies[1]":"EUR","currencies[2]":"ABC","password":"test123","site.retries":0,"site.timeout":50,"site.url":"https://test.com"}`,
+			jsonOutput:    `{"a":"b1","accountstuff.currencies":["DEF","GHI","JKL"],"accountstuff.val":"xxx","b":"c","c":"d2","currencies":["USD","EUR","ABC"],"password":"test123","site.retries":0,"site.timeout":50,"site.url":"https://test.com","supportedCurrencies.ABC":{},"supportedCurrencies.EUR":{},"supportedCurrencies.GBP":{}}`,
+			jsonOutputAlt: `{"a":"b1","accountstuff.currencies[0]":"DEF","accountstuff.currencies[1]":"GHI","accountstuff.currencies[2]":"JKL","accountstuff.val":"xxx","b":"c","c":"d2","currencies[0]":"USD","currencies[1]":"EUR","currencies[2]":"ABC","password":"test123","site.retries":0,"site.timeout":50,"site.url":"https://test.com","supportedCurrencies.ABC":{},"supportedCurrencies.EUR":{},"supportedCurrencies.GBP":{}}`,
 			headers: http.Header{
 				"Content-Type":                          []string{"application/json"},
 				"X-Resolution-Version":                  []string{expectedVersion},
@@ -521,7 +526,7 @@ func Test_routesTraceEnabled(t *testing.T) {
 			method:     "GET",
 			url:        "/accounts/production?resolve=true&norefresh", // don't refresh git
 			statusCode: 200,
-			jsonOutput: `{"a":"b123","accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"b":"c234","c":"d344","currencies":["USD","EUR","ABC"],"site":{"interval":5,"retries":5,"timeout":5,"url":"https://live.com"}}`,
+			jsonOutput: `{"a":"b123","accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"b":"c234","c":"d344","currencies":["USD","EUR","ABC"],"site":{"interval":5,"retries":5,"timeout":5,"url":"https://live.com"},"supportedCurrencies":{"ABC":{},"EUR":{},"GBP":{}}}`,
 		},
 	}
 
@@ -610,6 +615,12 @@ currencies:
   - USD
   - EUR
   - ABC
+
+supportedCurrencies:
+  GBP: {}
+  EUR: {}
+  ABC: {}
+
 accountstuff:
   val: xxx
   currencies:
