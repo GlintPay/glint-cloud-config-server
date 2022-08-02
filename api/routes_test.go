@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/GlintPay/gccs/backend"
 	"github.com/GlintPay/gccs/backend/git"
@@ -9,6 +10,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	goGit "github.com/go-git/go-git/v5"
 	promApi "github.com/poblish/promenade/api"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
@@ -557,6 +560,55 @@ func Test_routesTraceEnabled(t *testing.T) {
 				attribute.String("http.target", "/accounts/production?resolve=true&norefresh"),
 				attribute.String("http.route", "/{application}/{profiles}"),
 			)
+		})
+	}
+}
+
+//goland:noinspection GoUnhandledErrorResult
+func Test_routesResponseLoggingEnabled(t *testing.T) {
+
+	gitDir, err := os.MkdirTemp("", "*")
+	assert.NoError(t, err)
+	defer os.Remove(gitDir)
+
+	repo, err := goGit.PlainInit(gitDir, false)
+	assert.NoError(t, err)
+
+	wt, err := repo.Worktree()
+	assert.NoError(t, err)
+
+	setUpFiles(t, gitDir, wt)
+
+	metrics := promApi.NewMetrics(promApi.MetricOpts{})
+
+	gb := &git.Backend{
+		Metrics: &metrics,
+		Repo:    repo,
+	}
+
+	router := setUpRouter(t, gb, true)
+
+	//////////////////////////////////////////////////////
+
+	tests := []ExampleRequest{
+		{
+			method:     "GET",
+			url:        "/accounts/production?resolve=true&norefresh&logResponses=true", // don't refresh git
+			statusCode: 200,
+			jsonOutput: `{"a":"b123","accountstuff":{"currencies":["DEF","GHI","JKL"],"val":"xxx"},"b":"c234","c":"d344","currencies":["USD","EUR","ABC"],"site":{"interval":5,"retries":5,"timeout":5,"url":"https://live.com"},"supportedCurrencies":{"ABC":{},"EUR":{},"GBP":{}}}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.url, func(t *testing.T) {
+			var str bytes.Buffer
+			log.Logger = zerolog.New(&str).With().Timestamp().Logger()
+
+			validateRequest(t, tt, tt.jsonOutput, router, "")
+
+			logOutput := str.String()
+			assert.Contains(t, logOutput, "Requesting: [accounts]/[production]/[{}]")
+			assert.Contains(t, logOutput, "Response: {")
 		})
 	}
 }
