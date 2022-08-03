@@ -1,15 +1,13 @@
 FROM golang:1.18.4 as builder
 
-RUN mkdir -p /services
-
-COPY . /services/glint-cloud-config-server
-WORKDIR /services/glint-cloud-config-server
+COPY . /gccs
+WORKDIR /gccs
 
 RUN make package
 
 FROM alpine:3
 WORKDIR /root/
-COPY --from=builder /services/glint-cloud-config-server/gccs .
+COPY --from=builder /gccs/gccs .
 
 CMD ["./gccs"]
 EXPOSE 80
