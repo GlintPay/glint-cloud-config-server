@@ -45,13 +45,13 @@ func (rtr *Routing) propertySourcesHandler() http.HandlerFunc {
 
 		req, queries, err := rtr.newRequestFromChi(r)
 		if err != nil {
-			rtr.writeError(w, err, req.LogResponses)
+			rtr.writeError(w, err)
 			return
 		}
 
 		source, err := LoadConfiguration(r.Context(), rtr.Backends[0], req) // FIXME Choose first backend for now!
 		if err != nil {
-			rtr.writeError(w, err, req.LogResponses)
+			rtr.writeError(w, err)
 			return
 		}
 
@@ -79,13 +79,13 @@ func (rtr *Routing) propertySourcesHandlerWithInjections() http.HandlerFunc {
 
 		req, queries, err := rtr.newRequestFromChi(r)
 		if err != nil {
-			rtr.writeError(w, err, req.LogResponses)
+			rtr.writeError(w, err)
 			return
 		}
 
 		source, err := LoadConfiguration(r.Context(), rtr.Backends[0], req) // FIXME Choose first backend for now!
 		if err != nil {
-			rtr.writeError(w, err, req.LogResponses)
+			rtr.writeError(w, err)
 			return
 		}
 
@@ -96,14 +96,14 @@ func (rtr *Routing) propertySourcesHandlerWithInjections() http.HandlerFunc {
 		if resolveVal {
 			bs, err := ioutil.ReadAll(r.Body)
 			if err != nil {
-				rtr.writeError(w, err, req.LogResponses)
+				rtr.writeError(w, err)
 				return
 			}
 
 			injected := InjectedProperties{}
 			err = json.Unmarshal(bs, &injected)
 			if err != nil {
-				rtr.writeError(w, err, req.LogResponses)
+				rtr.writeError(w, err)
 				return
 			}
 
@@ -138,7 +138,7 @@ func writeHeaders(header http.Header, req ConfigurationRequest, metadata Resolut
 
 func (rtr *Routing) handleOutput(w http.ResponseWriter, err error, bytes []byte, logResponses bool) {
 	if err != nil {
-		rtr.writeError(w, err, logResponses)
+		rtr.writeError(w, err)
 		return
 	}
 
@@ -150,7 +150,7 @@ func (rtr *Routing) handleOutput(w http.ResponseWriter, err error, bytes []byte,
 	}
 }
 
-func (rtr *Routing) writeError(w http.ResponseWriter, err error, logResponses bool) {
+func (rtr *Routing) writeError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusInternalServerError)
 
 	info := map[string]interface{}{"message": err.Error()}
