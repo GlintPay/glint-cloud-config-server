@@ -6,6 +6,7 @@ import (
 	"github.com/GlintPay/gccs/backend"
 	"github.com/GlintPay/gccs/backend/git"
 	"github.com/GlintPay/gccs/config"
+	"github.com/GlintPay/gccs/logging"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	goGit "github.com/go-git/go-git/v5"
@@ -609,6 +610,56 @@ func Test_routesResponseLoggingEnabled(t *testing.T) {
 			logOutput := str.String()
 			assert.Contains(t, logOutput, "Requesting: [accounts]/[production]/[{}]")
 			assert.Contains(t, logOutput, "Response: {")
+		})
+	}
+}
+
+func Test_routesResponseErrorsLogged(t *testing.T) {
+
+	gitDir, err := os.MkdirTemp("", "*")
+	assert.NoError(t, err)
+	defer os.Remove(gitDir)
+
+	repo, err := goGit.PlainInit(gitDir, false)
+	assert.NoError(t, err)
+
+	wt, err := repo.Worktree()
+	assert.NoError(t, err)
+
+	_writeGitFile(t, gitDir, wt, "application-junk.yaml", `junk sdasdasda`)
+
+	setUpFiles(t, gitDir, wt)
+
+	metrics := promApi.NewMetrics(promApi.MetricOpts{})
+
+	gb := &git.Backend{
+		Metrics: &metrics,
+		Repo:    repo,
+	}
+
+	router := setUpRouter(t, gb, true)
+
+	//////////////////////////////////////////////////////
+
+	tests := []ExampleRequest{
+		{
+			method:     "GET",
+			url:        "/accounts/junk?resolve=true&norefresh", // don't refresh git
+			statusCode: 500,
+			jsonOutput: `{"message":"error unmarshaling JSON: while decoding JSON: json: cannot unmarshal string into Go value of type map[string]interface {}"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.url, func(t *testing.T) {
+			var str bytes.Buffer
+			logging.Setup(&str)
+
+			validateRequest(t, tt, tt.jsonOutput, router, "")
+
+			logOutput := str.String()
+			assert.Contains(t, logOutput, "error unmarshaling JSON: while decoding JSON")
+			assert.Contains(t, logOutput, "api/routes.go") // caller
 		})
 	}
 }

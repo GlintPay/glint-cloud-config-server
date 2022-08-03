@@ -8,15 +8,14 @@ import (
 	"github.com/GlintPay/gccs/backend/git"
 	"github.com/GlintPay/gccs/config"
 	"github.com/GlintPay/gccs/health"
+	"github.com/GlintPay/gccs/logging"
 	"github.com/GlintPay/gccs/utils"
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	promApi "github.com/poblish/promenade/api"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/rs/zerolog/pkgerrors"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -45,7 +44,7 @@ func main() {
 	appConfig.Prometheus.Metrics = &metrics
 	//}
 
-	setUpLogger()
+	logging.Setup(os.Stdout)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -91,11 +90,6 @@ func main() {
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("startup failed")
 	}
-}
-
-func setUpLogger() {
-	zerolog.TimeFieldFormat = "2006-01-02T15:04:05.000"
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 }
 
 func readConfig(filePath string, config *config.ApplicationConfiguration) {
