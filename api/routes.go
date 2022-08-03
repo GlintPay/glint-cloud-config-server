@@ -156,9 +156,7 @@ func (rtr *Routing) writeError(w http.ResponseWriter, err error, logResponses bo
 	info := map[string]interface{}{"message": err.Error()}
 	_ = json.NewEncoder(w).Encode(info)
 
-	if logResponses {
-		log.Debug().Err(err).Msg("Response error")
-	}
+	log.Error().Err(err).Stack().Msg("Response error")
 }
 
 func (rtr *Routing) newRequestFromChi(r *http.Request) (ConfigurationRequest, url.Values, error) {
