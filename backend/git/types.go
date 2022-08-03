@@ -13,6 +13,7 @@ type Backend struct {
 	Repo       *goGit.Repository
 	PublicKeys *ssh.PublicKeys
 	Metrics    promApi.PrometheusMetrics
+	EnableTrace bool
 }
 
 type fileItrWrapper struct {

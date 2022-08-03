@@ -53,6 +53,7 @@ func main() {
 
 	var backends backend.Backends
 	backends = append(backends, &git.Backend{}) // just one for now!
+	backends = append(backends, &git.Backend{EnableTrace: appConfig.Tracing.Enabled}) // just one for now!
 
 	for _, each := range backends {
 		if backendErr := each.Init(ctx, appConfig, appConfig.Prometheus.Metrics); backendErr != nil {

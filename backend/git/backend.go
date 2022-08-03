@@ -6,6 +6,7 @@ import (
 	"github.com/GlintPay/gccs/backend"
 	"github.com/GlintPay/gccs/config"
 	"github.com/GlintPay/gccs/filetypes"
+	gotel "github.com/GlintPay/gccs/otel"
 	goGit "github.com/go-git/go-git/v5"
 	goGitConfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -59,7 +60,10 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 	repo, err := goGit.PlainOpen(s.Config.Basedir)
 
 	if err == goGit.ErrRepositoryNotExists {
-		defer s.Metrics.Timer("clone")()
+		if s.EnableTrace {
+			_, span := gotel.GetTracer(ctxt).Start(ctxt, "git-clone", gotel.ServerOptions)
+			defer span.End()
+		}
 
 		depth := 0 // unlimited
 		if s.Config.DisableLabels {
@@ -118,6 +122,11 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 
 			log.Debug().Msgf("Checked out remote [%s] OK", branch)
 			return nil
+		}
+
+		if s.EnableTrace {
+			_, span := gotel.GetTracer(ctxt).Start(ctxt, "git-pull", gotel.ServerOptions)
+			defer span.End()
 		}
 
 		err = w.Pull(&goGit.PullOptions{
