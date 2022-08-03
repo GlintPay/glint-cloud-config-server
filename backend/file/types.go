@@ -1,12 +1,7 @@
 package file
 
-import (
-	promApi "github.com/poblish/promenade/api"
-)
-
 type Backend struct {
 	DirPath string
-	Metrics promApi.PrometheusMetrics
 }
 
 type fileItrWrapper struct {

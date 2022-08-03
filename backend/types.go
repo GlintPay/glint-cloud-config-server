@@ -3,14 +3,13 @@ package backend
 import (
 	"context"
 	"github.com/GlintPay/gccs/config"
-	promApi "github.com/poblish/promenade/api"
 	"io"
 )
 
 type Backends []Backend
 
 type Backend interface {
-	Init(ctxt context.Context, config config.ApplicationConfiguration, metrics promApi.PrometheusMetrics) error
+	Init(ctxt context.Context, config config.ApplicationConfiguration) error
 	GetCurrentState(ctxt context.Context, branch string, refresh bool) (*State, error)
 	Close()
 }

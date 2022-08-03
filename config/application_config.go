@@ -1,9 +1,5 @@
 package config
 
-import (
-	promApi "github.com/poblish/promenade/api"
-)
-
 type Configuration struct {
 	ApplicationConfigFileYmlPath string `env:"APP_CONFIG_FILE_YML_PATH" envDefault:"application.yml"`
 }
@@ -36,6 +32,5 @@ type Tracing struct {
 }
 
 type Prometheus struct {
-	Path    string
-	Metrics promApi.PrometheusMetrics
+	Path string
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
-	promApi "github.com/poblish/promenade/api"
 	"github.com/rs/zerolog/log"
 	"io"
 	"os"
@@ -20,9 +19,8 @@ import (
 	"strings"
 )
 
-func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfiguration, metrics promApi.PrometheusMetrics) error {
+func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfiguration) error {
 	s.Config = config.Git
-	s.Metrics = metrics
 
 	hostKeyCallback, err := ssh.NewKnownHostsCallback(s.Config.KnownHostsFile)
 	if err != nil {

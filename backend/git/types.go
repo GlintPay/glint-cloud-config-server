@@ -5,14 +5,12 @@ import (
 	goGit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
-	promApi "github.com/poblish/promenade/api"
 )
 
 type Backend struct {
-	Config     config.GitConfig
-	Repo       *goGit.Repository
-	PublicKeys *ssh.PublicKeys
-	Metrics    promApi.PrometheusMetrics
+	Config      config.GitConfig
+	Repo        *goGit.Repository
+	PublicKeys  *ssh.PublicKeys
 	EnableTrace bool
 }
 

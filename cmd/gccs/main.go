@@ -13,7 +13,6 @@ import (
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	promApi "github.com/poblish/promenade/api"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
@@ -39,10 +38,6 @@ func main() {
 
 	appConfig := config.ApplicationConfiguration{}
 	readConfig(envConfig.ApplicationConfigFileYmlPath, &appConfig)
-	//if len(appConfig.Prometheus.Path) > 0 {
-	metrics := promApi.NewMetrics(promApi.MetricOpts{MetricNamePrefix: serviceName})
-	appConfig.Prometheus.Metrics = &metrics
-	//}
 
 	logging.Setup(os.Stdout)
 
@@ -52,11 +47,10 @@ func main() {
 	////////////////////////////////////////////
 
 	var backends backend.Backends
-	backends = append(backends, &git.Backend{}) // just one for now!
 	backends = append(backends, &git.Backend{EnableTrace: appConfig.Tracing.Enabled}) // just one for now!
 
 	for _, each := range backends {
-		if backendErr := each.Init(ctx, appConfig, appConfig.Prometheus.Metrics); backendErr != nil {
+		if backendErr := each.Init(ctx, appConfig); backendErr != nil {
 			log.Fatal().Stack().Err(backendErr).Msg("Backend init failed")
 		}
 	}

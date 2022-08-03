@@ -8,7 +8,6 @@ require (
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/heptiolabs/healthcheck v0.0.0-20180807145615-6ff867650f40
 	github.com/mitchellh/mapstructure v1.1.2
-	github.com/poblish/promenade v1.2.1
 	github.com/prometheus/client_golang v1.12.2
 	github.com/riandyrn/otelchi v0.4.0
 	github.com/rs/zerolog v1.27.0

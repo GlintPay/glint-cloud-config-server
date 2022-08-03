@@ -10,7 +10,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	goGit "github.com/go-git/go-git/v5"
-	promApi "github.com/poblish/promenade/api"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
@@ -45,11 +44,8 @@ func Test_routesHierarchical(t *testing.T) {
 
 	setUpFiles(t, gitDir, wt)
 
-	metrics := promApi.NewMetrics(promApi.MetricOpts{})
-
 	gb := &git.Backend{
-		Metrics: &metrics,
-		Repo:    repo,
+		Repo: repo,
 	}
 
 	expectedVersion := _getHash(repo)
@@ -263,11 +259,8 @@ func Test_routesFlattened(t *testing.T) {
 
 	setUpFiles(t, gitDir, wt)
 
-	metrics := promApi.NewMetrics(promApi.MetricOpts{})
-
 	gb := &git.Backend{
-		Metrics: &metrics,
-		Repo:    repo,
+		Repo: repo,
 	}
 
 	expectedVersion := _getHash(repo)
@@ -457,11 +450,8 @@ accountstuff:
       x: a
 `)
 
-	metrics := promApi.NewMetrics(promApi.MetricOpts{})
-
 	gb := &git.Backend{
-		Metrics: &metrics,
-		Repo:    repo,
+		Repo: repo,
 	}
 
 	expectedVersion := _getHash(repo)
@@ -507,11 +497,8 @@ func Test_routesTraceEnabled(t *testing.T) {
 
 	setUpFiles(t, gitDir, wt)
 
-	metrics := promApi.NewMetrics(promApi.MetricOpts{})
-
 	gb := &git.Backend{
-		Metrics: &metrics,
-		Repo:    repo,
+		Repo: repo,
 	}
 
 	//////////////////////////////////////////////////////
@@ -580,11 +567,8 @@ func Test_routesResponseLoggingEnabled(t *testing.T) {
 
 	setUpFiles(t, gitDir, wt)
 
-	metrics := promApi.NewMetrics(promApi.MetricOpts{})
-
 	gb := &git.Backend{
-		Metrics: &metrics,
-		Repo:    repo,
+		Repo: repo,
 	}
 
 	router := setUpRouter(t, gb, true)
@@ -630,11 +614,8 @@ func Test_routesResponseErrorsLogged(t *testing.T) {
 
 	setUpFiles(t, gitDir, wt)
 
-	metrics := promApi.NewMetrics(promApi.MetricOpts{})
-
 	gb := &git.Backend{
-		Metrics: &metrics,
-		Repo:    repo,
+		Repo: repo,
 	}
 
 	router := setUpRouter(t, gb, true)

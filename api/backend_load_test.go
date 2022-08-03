@@ -5,7 +5,6 @@ import (
 	"github.com/GlintPay/gccs/backend/file"
 	"github.com/GlintPay/gccs/backend/git"
 	goGit "github.com/go-git/go-git/v5"
-	promApi "github.com/poblish/promenade/api"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
@@ -63,11 +62,8 @@ b: c
 c: d
 `)
 
-	metrics := promApi.NewMetrics(promApi.MetricOpts{})
-
 	be := git.Backend{
-		Metrics: &metrics,
-		Repo:    repo,
+		Repo: repo,
 	}
 
 	req := ConfigurationRequest{
@@ -167,11 +163,8 @@ b: c234
 c: d344
 `)
 
-	metrics := promApi.NewMetrics(promApi.MetricOpts{})
-
 	be := git.Backend{
-		Metrics: &metrics,
-		Repo:    repo,
+		Repo: repo,
 	}
 
 	req := ConfigurationRequest{
@@ -236,10 +229,7 @@ c: d
 
 	_writeFile(t, fileDir, ".unreadable.blah", ``)
 
-	metrics := promApi.NewMetrics(promApi.MetricOpts{})
-
 	be := file.Backend{
-		Metrics: &metrics,
 		DirPath: fileDir,
 	}
 
@@ -310,10 +300,7 @@ c: d
 
 	_writeFile(t, fileDir, ".unreadable.blah", ``)
 
-	metrics := promApi.NewMetrics(promApi.MetricOpts{})
-
 	be := file.Backend{
-		Metrics: &metrics,
 		DirPath: fileDir,
 	}
 
@@ -375,10 +362,7 @@ func TestLoadConfigurationWithEmptyFileDir(t *testing.T) {
 	fileDir, err := os.MkdirTemp("", "*")
 	assert.NoError(t, err)
 
-	metrics := promApi.NewMetrics(promApi.MetricOpts{})
-
 	be := file.Backend{
-		Metrics: &metrics,
 		DirPath: fileDir,
 	}
 

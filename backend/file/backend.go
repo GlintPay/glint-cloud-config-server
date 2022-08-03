@@ -6,7 +6,6 @@ import (
 	"github.com/GlintPay/gccs/backend"
 	"github.com/GlintPay/gccs/config"
 	"github.com/GlintPay/gccs/filetypes"
-	promApi "github.com/poblish/promenade/api"
 	"io"
 	"io/ioutil"
 	"os"
@@ -14,8 +13,7 @@ import (
 	"path/filepath"
 )
 
-func (s *Backend) Init(_ context.Context, _ config.ApplicationConfiguration, metrics promApi.PrometheusMetrics) error {
-	s.Metrics = metrics
+func (s *Backend) Init(_ context.Context, _ config.ApplicationConfiguration) error {
 	return nil
 }
 
