@@ -152,7 +152,9 @@ func (rtr *Routing) handleOutput(w http.ResponseWriter, err error, bytes []byte,
 
 func (rtr *Routing) writeError(w http.ResponseWriter, err error, logResponses bool) {
 	w.WriteHeader(http.StatusInternalServerError)
-	_, _ = w.Write([]byte(err.Error()))
+
+	info := map[string]interface{}{"message": err.Error()}
+	_ = json.NewEncoder(w).Encode(info)
 
 	if logResponses {
 		log.Debug().Err(err).Msg("Response error")

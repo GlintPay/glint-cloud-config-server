@@ -236,7 +236,7 @@ func Test_routesHierarchical(t *testing.T) {
 			method:     "GET",
 			url:        "/accounts/junk?norefresh", // don't refresh git
 			statusCode: 500,
-			jsonOutput: `error unmarshaling JSON: while decoding JSON: json: cannot unmarshal string into Go value of type map[string]interface {}`,
+			jsonOutput: `{"message":"error unmarshaling JSON: while decoding JSON: json: cannot unmarshal string into Go value of type map[string]interface {}"}`,
 			headers:    http.Header{},
 		},
 	}
@@ -405,7 +405,7 @@ func Test_routesFlattened(t *testing.T) {
 			method:     "GET",
 			url:        "/accounts/junk?norefresh", // don't refresh git
 			statusCode: 500,
-			jsonOutput: `error unmarshaling JSON: while decoding JSON: json: cannot unmarshal string into Go value of type map[string]interface {}`,
+			jsonOutput: `{"message":"error unmarshaling JSON: while decoding JSON: json: cannot unmarshal string into Go value of type map[string]interface {}"}`,
 			headers:    http.Header{},
 		},
 	}
