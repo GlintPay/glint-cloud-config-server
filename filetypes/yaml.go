@@ -4,7 +4,6 @@ import (
 	"github.com/GlintPay/gccs/backend"
 	"github.com/rs/zerolog/log"
 	"io"
-	"io/ioutil"
 	"sigs.k8s.io/yaml"
 )
 
@@ -34,5 +33,5 @@ func ToBytes(f backend.File) ([]byte, error) {
 		}
 	}(reader)
 
-	return ioutil.ReadAll(reader)
+	return io.ReadAll(reader)
 }

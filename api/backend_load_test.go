@@ -6,7 +6,6 @@ import (
 	"github.com/GlintPay/gccs/backend/git"
 	goGit "github.com/go-git/go-git/v5"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -385,7 +384,7 @@ func TestLoadConfigurationWithEmptyFileDir(t *testing.T) {
 }
 
 func _writeGitFile(t *testing.T, gitDir string, wt *goGit.Worktree, filename string, contents string) {
-	err := ioutil.WriteFile(filepath.Join(gitDir, filename), []byte(contents), 0644)
+	err := os.WriteFile(filepath.Join(gitDir, filename), []byte(contents), 0644)
 	assert.NoError(t, err)
 
 	_, err = wt.Add(filename)
@@ -396,7 +395,7 @@ func _writeGitFile(t *testing.T, gitDir string, wt *goGit.Worktree, filename str
 
 func _writeFile(t *testing.T, dir string, name string, contents string) {
 	path := filepath.Join(dir, name)
-	err := ioutil.WriteFile(path, []byte(contents), 0644)
+	err := os.WriteFile(path, []byte(contents), 0644)
 	assert.NoError(t, err)
 }
 

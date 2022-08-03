@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/riandyrn/otelchi"
 	"github.com/rs/zerolog/log"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -94,7 +94,7 @@ func (rtr *Routing) propertySourcesHandlerWithInjections() http.HandlerFunc {
 
 		resolveVal := overrideBooleanDefault(queries.Get("resolve"), rtr.AppConfig.Defaults.ResolvePropertySources)
 		if resolveVal {
-			bs, err := ioutil.ReadAll(r.Body)
+			bs, err := io.ReadAll(r.Body)
 			if err != nil {
 				rtr.writeError(w, err)
 				return
