@@ -7,7 +7,6 @@ import (
 	"github.com/GlintPay/gccs/config"
 	"github.com/GlintPay/gccs/filetypes"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -61,12 +60,12 @@ func (g file) Reader() (io.ReadCloser, error) {
 }
 
 func (itr fileItrWrapper) ForEach(handler func(f backend.File) error) error {
-	fileInfo, err := ioutil.ReadDir(itr.DirPath)
+	dirEntry, err := os.ReadDir(itr.DirPath)
 	if err != nil {
 		return err
 	}
 
-	for _, d := range fileInfo {
+	for _, d := range dirEntry {
 		name := d.Name()
 		filePath := path.Join([]string{itr.DirPath, name}...)
 		if e := handler(fileWrapper{FileName: name, Path: filePath}); e != nil {
