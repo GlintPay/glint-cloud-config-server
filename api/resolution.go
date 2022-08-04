@@ -65,7 +65,7 @@ func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []
 	}
 }
 
-func resolvePlaceholders(allValues ResolvedConfigValues, currentMap map[string]interface{}) {
+func resolvePlaceholders(allValues ResolvedConfigValues, currentMap map[string]interface{}) ResolvedConfigValues {
 	for propertyName, v := range currentMap {
 		switch typedVal := v.(type) {
 		case map[string]interface{}:
@@ -79,6 +79,7 @@ func resolvePlaceholders(allValues ResolvedConfigValues, currentMap map[string]i
 			currentMap[propertyName] = resolveString(allValues, propertyName, typedVal)
 		}
 	}
+	return allValues
 }
 
 // FIXME Should missing properties be a configurable fatal error?
