@@ -101,10 +101,12 @@ func (rtr *Routing) propertySourcesHandlerWithInjections() http.HandlerFunc {
 			}
 
 			injected := InjectedProperties{}
-			err = json.Unmarshal(bs, &injected)
-			if err != nil {
-				rtr.writeError(w, err)
-				return
+			if len(bs) > 0 {
+				err = json.Unmarshal(bs, &injected)
+				if err != nil {
+					rtr.writeError(w, err)
+					return
+				}
 			}
 
 			resolver := rtr.newResolver()

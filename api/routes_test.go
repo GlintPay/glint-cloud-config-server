@@ -188,6 +188,20 @@ func Test_routesHierarchical(t *testing.T) {
 			jsonOutput: `{"a":"b","b":"new-b","c":"d"}`,
 		},
 		{
+			method:     "PATCH",
+			url:        "/somethingelse/local?resolve=true&norefresh", // don't refresh git
+			body:       strings.NewReader(``),
+			statusCode: 200,
+			jsonOutput: `{"a":"b","b":"c","c":"d"}`,
+		},
+		{
+			method: "PATCH",
+			url:    "/somethingelse/local?resolve=true&norefresh", // don't refresh git
+			// no body
+			statusCode: 200,
+			jsonOutput: `{"a":"b","b":"c","c":"d"}`,
+		},
+		{
 			method:     "GET",
 			url:        "/accounts/local?norefresh", // don't refresh git
 			statusCode: 200,
