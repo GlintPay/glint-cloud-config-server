@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/GlintPay/gccs/backend/file"
 	"github.com/GlintPay/gccs/backend/git"
+	"github.com/GlintPay/gccs/config"
 	goGit "github.com/go-git/go-git/v5"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -229,7 +230,9 @@ c: d
 	_writeFile(t, fileDir, ".unreadable.blah", ``)
 
 	be := file.Backend{
-		DirPath: fileDir,
+		Config: config.FileConfig{
+			Path: fileDir,
+		},
 	}
 
 	req := ConfigurationRequest{
@@ -300,7 +303,9 @@ c: d
 	_writeFile(t, fileDir, ".unreadable.blah", ``)
 
 	be := file.Backend{
-		DirPath: fileDir,
+		Config: config.FileConfig{
+			Path: fileDir,
+		},
 	}
 
 	req := ConfigurationRequest{
@@ -362,7 +367,9 @@ func TestLoadConfigurationWithEmptyFileDir(t *testing.T) {
 	assert.NoError(t, err)
 
 	be := file.Backend{
-		DirPath: fileDir,
+		Config: config.FileConfig{
+			Path: fileDir,
+		},
 	}
 
 	req := ConfigurationRequest{

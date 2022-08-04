@@ -6,13 +6,16 @@ import (
 	"github.com/GlintPay/gccs/backend"
 	"github.com/GlintPay/gccs/config"
 	"github.com/GlintPay/gccs/filetypes"
+	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
 )
 
-func (s *Backend) Init(_ context.Context, _ config.ApplicationConfiguration) error {
+func (s *Backend) Init(_ context.Context, appConfig config.ApplicationConfiguration) error {
+	s.Config = appConfig.File
+	log.Debug().Msgf("Reading from %s", s.Config.Path)
 	return nil
 }
 
@@ -22,7 +25,7 @@ func (s *Backend) GetCurrentState(_ context.Context, branch string, _ bool) (*ba
 	}
 
 	return &backend.State{
-		Files:   fileItrWrapper{DirPath: s.DirPath},
+		Files:   fileItrWrapper{DirPath: s.Config.Path},
 		Version: "",
 	}, nil
 }

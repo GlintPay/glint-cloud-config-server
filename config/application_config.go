@@ -8,6 +8,7 @@ type Configuration struct {
 type ApplicationConfiguration struct {
 	Server     Server
 	Prometheus Prometheus
+	File       FileConfig
 	Git        GitConfig
 	Defaults   Defaults
 	Tracing    Tracing

@@ -1,7 +1,9 @@
 package file
 
+import "github.com/GlintPay/gccs/config"
+
 type Backend struct {
-	DirPath string
+	Config config.FileConfig
 }
 
 type fileItrWrapper struct {
