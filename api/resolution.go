@@ -47,7 +47,8 @@ func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []
 	}
 
 	// Handle embedded references: ${propertyName} and ${propertyName:defaultValueIfMissing}. NB. Blank values don't trigger default.
-	resolvePlaceholders(reconciled, reconciled)
+	rr := PropertiesResolver{data: reconciled}
+	rr.resolvePlaceholdersFromTop()
 
 	// Copy non-^ ones at highest level
 	for k, v := range injections {
@@ -63,48 +64,6 @@ func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []
 	return reconciled, ResolutionMetadata{
 		PrecedenceDisplayMessage: sourceNames,
 	}
-}
-
-func resolvePlaceholders(allValues ResolvedConfigValues, currentMap map[string]interface{}) ResolvedConfigValues {
-	for propertyName, v := range currentMap {
-		switch typedVal := v.(type) {
-		case map[string]interface{}:
-			resolvePlaceholders(allValues, typedVal)
-		case []string:
-			// FIXME Incomplete
-			// for propertyName, v := range reconciled {
-			//	resolvePlaceholders(typedVal)
-			// }
-		case string:
-			currentMap[propertyName] = resolveString(allValues, propertyName, typedVal)
-		}
-	}
-	return allValues
-}
-
-// FIXME Should missing properties be a configurable fatal error?
-func resolveString(allValues ResolvedConfigValues, propertyName string, value string) string {
-	// Don't check for pointless overrides here, it's expected
-	return placeholderRegex.ReplaceAllStringFunc(value, func(foundMatch string) string {
-		sourcePropertyWithDefault := strings.Split(strings.TrimSpace(foundMatch[2:len(foundMatch)-1]), ":")
-
-		if sourcePropertyWithDefault[0] != "" {
-			if resolvedPropertyValue, ok := allValues[sourcePropertyWithDefault[0]]; ok {
-				// Found a match, replace with `resolvedPropertyValue`
-				return resolvedPropertyValue.(string)
-			} else if len(sourcePropertyWithDefault) < 2 {
-				// No match, no default
-				log.Warn().Msgf("Missing value for property [%s]", sourcePropertyWithDefault[0])
-			} else if len(sourcePropertyWithDefault) > 1 {
-				// No match, use available default
-				return sourcePropertyWithDefault[1]
-			}
-		}
-
-		// ${} is not acceptable
-		log.Warn().Msgf("Missing placeholder [%s] for property [%s]", foundMatch, propertyName)
-		return ""
-	})
 }
 
 func (f *Resolver) overrideValue(reconciled map[string]interface{}, k string, v interface{}, source string) {
