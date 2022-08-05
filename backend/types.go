@@ -9,9 +9,14 @@ import (
 type Backends []Backend
 
 type Backend interface {
+	Ordering
 	Init(ctxt context.Context, config config.ApplicationConfiguration) error
 	GetCurrentState(ctxt context.Context, branch string, refresh bool) (*State, error)
 	Close()
+}
+
+type Ordering interface {
+	Order() int
 }
 
 type State struct {

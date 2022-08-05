@@ -6,6 +6,10 @@ type Backend struct {
 	Config config.FileConfig
 }
 
+func (b *Backend) Order() int {
+	return b.Config.Order
+}
+
 type fileItrWrapper struct {
 	DirPath string
 }

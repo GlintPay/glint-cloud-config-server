@@ -44,13 +44,14 @@ func Test_routesHierarchical(t *testing.T) {
 
 	setUpFiles(t, gitDir, wt)
 
-	gb := &git.Backend{
+	var backends backend.Backends
+	backends = append(backends, &git.Backend{
 		Repo: repo,
-	}
+	})
 
 	expectedVersion := _getHash(repo)
 
-	router := setUpRouter(t, gb, false)
+	router := setUpRouter(t, backends, false)
 
 	//////////////////////////////////////////////////////
 
@@ -280,13 +281,14 @@ func Test_routesFlattened(t *testing.T) {
 
 	setUpFiles(t, gitDir, wt)
 
-	gb := &git.Backend{
+	var backends backend.Backends
+	backends = append(backends, &git.Backend{
 		Repo: repo,
-	}
+	})
 
 	expectedVersion := _getHash(repo)
 
-	router := setUpRouter(nil, gb, false)
+	router := setUpRouter(nil, backends, false)
 
 	//////////////////////////////////////////////////////
 
@@ -471,13 +473,14 @@ accountstuff:
       x: a
 `)
 
-	gb := &git.Backend{
+	var backends backend.Backends
+	backends = append(backends, &git.Backend{
 		Repo: repo,
-	}
+	})
 
 	expectedVersion := _getHash(repo)
 
-	router := setUpRouter(nil, gb, false)
+	router := setUpRouter(nil, backends, false)
 
 	//////////////////////////////////////////////////////
 
@@ -518,9 +521,10 @@ func Test_routesTraceEnabled(t *testing.T) {
 
 	setUpFiles(t, gitDir, wt)
 
-	gb := &git.Backend{
+	var backends backend.Backends
+	backends = append(backends, &git.Backend{
 		Repo: repo,
-	}
+	})
 
 	//////////////////////////////////////////////////////
 
@@ -529,7 +533,7 @@ func Test_routesTraceEnabled(t *testing.T) {
 	tracerProvider.RegisterSpanProcessor(sr)
 	otel.SetTracerProvider(tracerProvider)
 
-	router := setUpRouter(t, gb, true)
+	router := setUpRouter(t, backends, true)
 
 	//////////////////////////////////////////////////////
 
@@ -588,11 +592,12 @@ func Test_routesResponseLoggingEnabled(t *testing.T) {
 
 	setUpFiles(t, gitDir, wt)
 
-	gb := &git.Backend{
+	var backends backend.Backends
+	backends = append(backends, &git.Backend{
 		Repo: repo,
-	}
+	})
 
-	router := setUpRouter(t, gb, true)
+	router := setUpRouter(t, backends, true)
 
 	//////////////////////////////////////////////////////
 
@@ -619,6 +624,7 @@ func Test_routesResponseLoggingEnabled(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoUnhandledErrorResult
 func Test_routesResponseErrorsLogged(t *testing.T) {
 
 	gitDir, err := os.MkdirTemp("", "*")
@@ -635,11 +641,12 @@ func Test_routesResponseErrorsLogged(t *testing.T) {
 
 	setUpFiles(t, gitDir, wt)
 
-	gb := &git.Backend{
+	var backends backend.Backends
+	backends = append(backends, &git.Backend{
 		Repo: repo,
-	}
+	})
 
-	router := setUpRouter(t, gb, true)
+	router := setUpRouter(t, backends, true)
 
 	//////////////////////////////////////////////////////
 
@@ -680,10 +687,7 @@ func validateRequest(t *testing.T, tt ExampleRequest, jsonOutput string, router 
 	}
 }
 
-func setUpRouter(t *testing.T, gb *git.Backend, traceEnabled bool) *chi.Mux {
-	var backends backend.Backends
-	backends = append(backends, gb)
-
+func setUpRouter(t *testing.T, bs backend.Backends, traceEnabled bool) *chi.Mux {
 	router := chi.NewRouter()
 	router.Use(middleware.StripSlashes)
 
@@ -691,7 +695,7 @@ func setUpRouter(t *testing.T, gb *git.Backend, traceEnabled bool) *chi.Mux {
 		ServerName:   traceServerName,
 		ParentRouter: router,
 
-		Backends: backends,
+		Backends: bs,
 		AppConfig: config.ApplicationConfiguration{
 			Defaults: config.Defaults{
 				FlattenHierarchicalConfig: false,

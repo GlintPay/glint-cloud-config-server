@@ -14,6 +14,10 @@ type Backend struct {
 	EnableTrace bool
 }
 
+func (b *Backend) Order() int {
+	return b.Config.Order
+}
+
 type fileItrWrapper struct {
 	RepoUri string
 	Files   *object.FileIter

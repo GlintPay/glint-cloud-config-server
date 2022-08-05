@@ -49,7 +49,7 @@ func (rtr *Routing) propertySourcesHandler() http.HandlerFunc {
 			return
 		}
 
-		source, err := LoadConfiguration(r.Context(), rtr.Backends[0], req) // FIXME Choose first backend for now!
+		source, err := LoadConfigurations(r.Context(), rtr.Backends, req)
 		if err != nil {
 			rtr.writeError(w, err)
 			return
@@ -83,7 +83,7 @@ func (rtr *Routing) propertySourcesHandlerWithInjections() http.HandlerFunc {
 			return
 		}
 
-		source, err := LoadConfiguration(r.Context(), rtr.Backends[0], req) // FIXME Choose first backend for now!
+		source, err := LoadConfigurations(r.Context(), rtr.Backends, req)
 		if err != nil {
 			rtr.writeError(w, err)
 			return

@@ -1,5 +1,6 @@
 package config
 
 type FileConfig struct {
-	Path string
+	Order int
+	Path  string
 }

@@ -7,10 +7,37 @@ import (
 	gotel "github.com/GlintPay/gccs/otel"
 	"github.com/GlintPay/gccs/utils"
 	"github.com/rs/zerolog/log"
+	"sort"
 	"strings"
 )
 
-func LoadConfiguration(ctxt context.Context, s backend.Backend, req ConfigurationRequest) (*Source, error) {
+func LoadConfigurations(ctxt context.Context, s backend.Backends, req ConfigurationRequest) (*Source, error) {
+	sorter := backend.Sorter{Backends: s}
+	sort.SliceStable(s, sorter.Sort())
+
+	sourceName := ""
+	if len(req.Applications) > 0 { // TODO Validate higher up?
+		sourceName = req.Applications[0]
+	}
+
+	source := &Source{
+		Name:            sourceName,
+		Profiles:        req.Profiles,
+		Label:           "",
+		State:           "",
+		Version:         "",
+		PropertySources: make([]PropertySource, 0),
+	}
+
+	for _, each := range s {
+		if e := loadConfiguration(ctxt, each, req, source); e != nil {
+			return &Source{}, e
+		}
+	}
+	return source, nil
+}
+
+func loadConfiguration(ctxt context.Context, s backend.Backend, req ConfigurationRequest, source *Source) error {
 	log.Debug().Msgf("Requesting: %s/%s/[%s]", req.Applications, req.Profiles, req.Labels)
 
 	if req.EnableTrace {
@@ -20,24 +47,12 @@ func LoadConfiguration(ctxt context.Context, s backend.Backend, req Configuratio
 
 	state, err := s.GetCurrentState(ctxt, req.Labels.Branch, req.RefreshBackend)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	sourceName := ""
-	if len(req.Applications) > 0 { // TODO Validate higher up?
-		sourceName = req.Applications[0]
-	}
+	source.Version = state.Version // FIXME
 
-	source := Source{
-		Name:            sourceName,
-		Profiles:        req.Profiles,
-		Label:           "",
-		State:           "",
-		Version:         state.Version,
-		PropertySources: make([]PropertySource, 0),
-	}
-
-	addHandler := newDiscoveryHandler(req, &source)
+	addHandler := newDiscoveryHandler(req, source)
 
 	/* https://docs.spring.io/spring-cloud-config/docs/current/reference/html/#_quick_start
 	The HTTP service has resources in the form:
@@ -87,10 +102,10 @@ func LoadConfiguration(ctxt context.Context, s backend.Backend, req Configuratio
 	})
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &source, nil
+	return nil
 }
 
 func findAmongProfiles(f backend.File, filename string, profile string, wantedProfiles []string, handler discoveryHandler) error {

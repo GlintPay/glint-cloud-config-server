@@ -1,6 +1,8 @@
 package config
 
 type GitConfig struct {
+	Order int
+
 	Uri            string
 	KnownHostsFile string `json:"knownHostsFile"`
 	PrivateKey     string `json:"privateKey"`

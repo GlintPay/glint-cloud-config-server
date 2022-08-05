@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"github.com/GlintPay/gccs/backend"
 	"github.com/GlintPay/gccs/backend/file"
 	"github.com/GlintPay/gccs/backend/git"
 	"github.com/GlintPay/gccs/config"
@@ -62,9 +63,10 @@ b: c
 c: d
 `)
 
-	be := git.Backend{
+	var backends backend.Backends
+	backends = append(backends, &git.Backend{
 		Repo: repo,
-	}
+	})
 
 	req := ConfigurationRequest{
 		Applications:   []string{"accounts"},
@@ -74,7 +76,7 @@ c: d
 
 	ctxt := context.Background()
 
-	got, err := LoadConfiguration(ctxt, &be, req)
+	got, err := LoadConfigurations(ctxt, backends, req)
 	assert.NoError(t, err)
 	assert.Equal(t, &Source{
 		Name:     "accounts",
@@ -163,9 +165,10 @@ b: c234
 c: d344
 `)
 
-	be := git.Backend{
+	var backends backend.Backends
+	backends = append(backends, &git.Backend{
 		Repo: repo,
-	}
+	})
 
 	req := ConfigurationRequest{
 		Applications:   []string{"accounts"},
@@ -175,7 +178,7 @@ c: d344
 
 	ctxt := context.Background()
 
-	got, err := LoadConfiguration(ctxt, &be, req)
+	got, err := LoadConfigurations(ctxt, backends, req)
 	assert.NoError(t, err)
 	assert.Equal(t, &Source{
 		Name:     "accounts",
@@ -229,11 +232,12 @@ c: d
 
 	_writeFile(t, fileDir, ".unreadable.blah", ``)
 
-	be := file.Backend{
+	var backends backend.Backends
+	backends = append(backends, &file.Backend{
 		Config: config.FileConfig{
 			Path: fileDir,
 		},
-	}
+	})
 
 	req := ConfigurationRequest{
 		Applications:   []string{"application"},
@@ -243,7 +247,7 @@ c: d
 
 	ctxt := context.Background()
 
-	got, err := LoadConfiguration(ctxt, &be, req)
+	got, err := LoadConfigurations(ctxt, backends, req)
 	assert.NoError(t, err)
 	assert.Equal(t, &Source{
 		Name:     "application",
@@ -302,11 +306,12 @@ c: d
 
 	_writeFile(t, fileDir, ".unreadable.blah", ``)
 
-	be := file.Backend{
+	var backends backend.Backends
+	backends = append(backends, &file.Backend{
 		Config: config.FileConfig{
 			Path: fileDir,
 		},
-	}
+	})
 
 	req := ConfigurationRequest{
 		Applications:   []string{"accounts"},
@@ -316,7 +321,7 @@ c: d
 
 	ctxt := context.Background()
 
-	got, err := LoadConfiguration(ctxt, &be, req)
+	got, err := LoadConfigurations(ctxt, backends, req)
 	assert.NoError(t, err)
 	assert.Equal(t, &Source{
 		Name:     "accounts",
@@ -366,11 +371,12 @@ func TestLoadConfigurationWithEmptyFileDir(t *testing.T) {
 	fileDir, err := os.MkdirTemp("", "*")
 	assert.NoError(t, err)
 
-	be := file.Backend{
+	var backends backend.Backends
+	backends = append(backends, &file.Backend{
 		Config: config.FileConfig{
 			Path: fileDir,
 		},
-	}
+	})
 
 	req := ConfigurationRequest{
 		Applications:   []string{"accounts"},
@@ -380,7 +386,7 @@ func TestLoadConfigurationWithEmptyFileDir(t *testing.T) {
 
 	ctxt := context.Background()
 
-	got, err := LoadConfiguration(ctxt, &be, req)
+	got, err := LoadConfigurations(ctxt, backends, req)
 	assert.NoError(t, err)
 	assert.Equal(t, &Source{
 		Name:            "accounts",
