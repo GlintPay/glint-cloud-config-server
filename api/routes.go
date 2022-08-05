@@ -94,17 +94,13 @@ func (rtr *Routing) propertySourcesHandlerWithInjections() http.HandlerFunc {
 
 		resolveVal := overrideBooleanDefault(queries.Get("resolve"), rtr.AppConfig.Defaults.ResolvePropertySources)
 		if resolveVal {
-			bs, err := io.ReadAll(r.Body)
-			if err != nil {
-				rtr.writeError(w, err)
-				return
-			}
-
 			injected := InjectedProperties{}
+
+			bs, _ := io.ReadAll(r.Body)
 			if len(bs) > 0 {
 				err = json.Unmarshal(bs, &injected)
 				if err != nil {
-					rtr.writeError(w, err)
+					rtr.writeError(w, errors.New("Unparseable JSON: "+err.Error()))
 					return
 				}
 			}

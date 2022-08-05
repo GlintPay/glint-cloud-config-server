@@ -195,6 +195,13 @@ func Test_routesHierarchical(t *testing.T) {
 			jsonOutput: `{"a":"b","b":"c","c":"d"}`,
 		},
 		{
+			method:     "PATCH",
+			url:        "/somethingelse/local?resolve=true&norefresh", // don't refresh git
+			body:       strings.NewReader(`junk`),
+			statusCode: 500,
+			jsonOutput: `{"message":"Unparseable JSON: invalid character 'j' looking for beginning of value"}`,
+		},
+		{
 			method: "PATCH",
 			url:    "/somethingelse/local?resolve=true&norefresh", // don't refresh git
 			// no body
