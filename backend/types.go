@@ -16,7 +16,7 @@ type Backend interface {
 }
 
 type Ordering interface {
-	Order() int
+	Order() int // lower is higher priority
 }
 
 type State struct {
