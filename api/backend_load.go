@@ -50,7 +50,15 @@ func loadConfiguration(ctxt context.Context, s backend.Backend, req Configuratio
 		return err
 	}
 
-	source.Version = state.Version // FIXME
+	// Join new version to existing, FWIW
+	if len(state.Version) > 0 {
+		if len(source.Version) > 0 {
+			source.Version += "; "
+		}
+		source.Version += state.Version
+	}
+
+	////////////////////////////////////////////////////
 
 	addHandler := newDiscoveryHandler(req, source)
 
