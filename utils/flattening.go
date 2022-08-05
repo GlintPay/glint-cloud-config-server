@@ -11,7 +11,7 @@ func Flatten(m map[string]interface{}, tokenizer func([]string) string) map[stri
 
 func flattenRecursive(m map[string]interface{}, ks []string, cb func([]string, interface{})) {
 	for k, v := range m {
-		newks := append(ks, k)
+		newks := append(ks, k) //nolint:gocritic
 		if newm, ok := v.(map[string]interface{}); ok {
 
 			// Method borrowed from https://github.com/wolfeidau/unflatten/blob/master/unflatten.go with this clause added
