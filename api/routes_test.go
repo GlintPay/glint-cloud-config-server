@@ -389,6 +389,14 @@ func Test_routesFlattened(t *testing.T) {
 			headers:       http.Header{"Content-Type": []string{"application/json"}},
 		},
 		{
+			method:        "PATCH",                                         // NB With PATCH and resolve off, behaviour is identical to GET - is that confusing?
+			url:           "/accounts/other,local?resolve=false&norefresh", // don't refresh git
+			statusCode:    200,
+			jsonOutput:    `{"name":"accounts","profiles":["other","local"],"label":"","version":"` + expectedVersion + `","state":"","propertySources":[{"name":"/accounts.yaml","source":{"accountstuff.currencies":["DEF","GHI","JKL"],"accountstuff.val":"xxx","currencies":["USD","EUR","ABC"],"site.retries":0,"site.timeout":50,"site.url":"https://test.com","supportedCurrencies.ABC":{},"supportedCurrencies.EUR":{},"supportedCurrencies.GBP":{}}},{"name":"/application-other.yaml","source":{"a":"b1","c":"d2"}},{"name":"/application.yaml","source":{"a":"b","b":"c","c":"d"}}]}`,
+			jsonOutputAlt: `{"name":"accounts","profiles":["other","local"],"label":"","version":"` + expectedVersion + `","state":"","propertySources":[{"name":"/accounts.yaml","source":{"accountstuff.currencies[0]":"DEF","accountstuff.currencies[1]":"GHI","accountstuff.currencies[2]":"JKL","accountstuff.val":"xxx","currencies[0]":"USD","currencies[1]":"EUR","currencies[2]":"ABC","site.retries":0,"site.timeout":50,"site.url":"https://test.com","supportedCurrencies.ABC":{},"supportedCurrencies.EUR":{},"supportedCurrencies.GBP":{}}},{"name":"/application-other.yaml","source":{"a":"b1","c":"d2"}},{"name":"/application.yaml","source":{"a":"b","b":"c","c":"d"}}]}`,
+			headers:       http.Header{"Content-Type": []string{"application/json"}},
+		},
+		{
 			method:        "GET",
 			url:           "/accounts/other,local?resolve=true&norefresh", // don't refresh git
 			statusCode:    200,
@@ -420,6 +428,13 @@ func Test_routesFlattened(t *testing.T) {
 		},
 		{
 			method:     "GET",
+			url:        "/accounts/junk?norefresh", // don't refresh git
+			statusCode: 500,
+			jsonOutput: `{"message":"error unmarshaling JSON: while decoding JSON: json: cannot unmarshal string into Go value of type map[string]interface {}"}`,
+			headers:    http.Header{},
+		},
+		{
+			method:     "PATCH",                    // injection case
 			url:        "/accounts/junk?norefresh", // don't refresh git
 			statusCode: 500,
 			jsonOutput: `{"message":"error unmarshaling JSON: while decoding JSON: json: cannot unmarshal string into Go value of type map[string]interface {}"}`,
@@ -637,7 +652,7 @@ func Test_routesResponseErrorsLogged(t *testing.T) {
 	wt, err := repo.Worktree()
 	assert.NoError(t, err)
 
-	_writeGitFile(t, gitDir, wt, "application-junk.yaml", `junk sdasdasda`)
+	_writeGitFile(t, gitDir, wt, "application-junk.yaml", `hasfdhgkahskfs`)
 
 	setUpFiles(t, gitDir, wt)
 
@@ -752,7 +767,9 @@ b: c234
 c: d344
 `)
 
-	_writeGitFile(t, gitDir, wt, "application-junk.yaml", `junk sdasdasda`)
+	_writeGitFile(t, gitDir, wt, "application-junk.yaml", `dskjhgksjhgksjf`)
+
+	_writeGitFile(t, gitDir, wt, "accounts-junk.yaml", `xhghgsdhmgahmds`)
 
 	_writeGitFile(t, gitDir, wt, "application-other.yaml", `
 a: b1

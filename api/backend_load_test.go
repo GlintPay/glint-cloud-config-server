@@ -366,6 +366,125 @@ c: d
 	}, got)
 }
 
+func TestLoadConfigurationWithFileAndGitBackends(t *testing.T) {
+
+	gitDir, err := os.MkdirTemp("", "*")
+	assert.NoError(t, err)
+	defer os.Remove(gitDir)
+
+	repo, err := goGit.PlainInit(gitDir, false)
+	assert.NoError(t, err)
+
+	wt, err := repo.Worktree()
+	assert.NoError(t, err)
+
+	_writeGitFile(t, gitDir, wt, "accounts.yaml", `
+site:
+  url: https://test.com
+  timeout: 50
+  retries: 0
+currencies:
+  - USD
+  - EUR
+  - ABC
+accountstuff:
+  val: xxx
+  currencies:
+    - DEF
+    - GHI
+    - JKL
+`)
+
+	_writeGitFile(t, gitDir, wt, "application.yaml", `
+a: b
+b: c
+c: d
+`)
+
+	fileDir, err := os.MkdirTemp("", "*")
+	assert.NoError(t, err)
+
+	_writeFile(t, fileDir, "accounts-production.yaml", `
+site:
+  url: https://live.com
+  timeout: 5
+  retries: 5
+  interval: 5
+`)
+
+	_writeFile(t, fileDir, "application-production.yaml", `
+a: b123
+b: c234
+c: d344
+`)
+
+	var backends backend.Backends
+	backends = append(backends, &git.Backend{
+		Config: config.GitConfig{
+			Order: 0, // second
+		},
+		Repo: repo,
+	})
+	backends = append(backends, &file.Backend{
+		Config: config.FileConfig{
+			Order: 1, // first
+			Path:  fileDir,
+		},
+	})
+
+	req := ConfigurationRequest{
+		Applications:   []string{"accounts"},
+		Profiles:       []string{"base", "production"},
+		RefreshBackend: false,
+	}
+
+	ctxt := context.Background()
+
+	got, err := LoadConfigurations(ctxt, backends, req)
+	assert.NoError(t, err)
+	assert.Equal(t, &Source{
+		Name:     "accounts",
+		Profiles: []string{"base", "production"},
+		Version:  _getHash(repo), // two sources joined
+		PropertySources: []PropertySource{
+			{
+				Name: "/accounts.yaml",
+				Source: map[string]interface{}{
+					"site": map[string]interface{}{
+						"retries": 0.0,
+						"timeout": 50.0,
+						"url":     "https://test.com",
+					},
+					"currencies": []interface{}{"USD", "EUR", "ABC"},
+					"accountstuff": map[string]interface{}{
+						"val":        "xxx",
+						"currencies": []interface{}{"DEF", "GHI", "JKL"},
+					},
+				},
+			},
+			{
+				Name:   "/application.yaml",
+				Source: map[string]interface{}{"a": "b", "b": "c", "c": "d"},
+			},
+			{
+				Name: filepath.Join(fileDir, "/accounts-production.yaml"),
+				Source: map[string]interface{}{
+					"site": map[string]interface{}{
+						"interval": 5.0,
+						"retries":  5.0,
+						"timeout":  5.0,
+						"url":      "https://live.com",
+					},
+				},
+			},
+			{
+				Name:   filepath.Join(fileDir, "/application-production.yaml"),
+				Source: map[string]interface{}{"a": "b123", "b": "c234", "c": "d344"},
+			},
+		},
+	}, got)
+}
+
 func TestLoadConfigurationWithEmptyFileDir(t *testing.T) {
 
 	fileDir, err := os.MkdirTemp("", "*")
