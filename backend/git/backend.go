@@ -57,6 +57,14 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 
 	repo, err := goGit.PlainOpen(s.Config.Basedir)
 
+	if branch == "" {
+		branch = s.Config.DefaultBranchName
+		if branch == "" {
+			branch = "master"
+		}
+	}
+	ref := plumbing.ReferenceName("refs/heads/" + branch)
+
 	if err == goGit.ErrRepositoryNotExists {
 		if s.EnableTrace {
 			_, span := gotel.GetTracer(ctxt).Start(ctxt, "git-clone", gotel.ServerOptions)
@@ -69,9 +77,10 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 		}
 
 		cloneOpts := &goGit.CloneOptions{
-			Depth: depth,
-			URL:   s.Config.Uri,
-			Auth:  s.PublicKeys,
+			ReferenceName: ref,
+			Depth:         depth,
+			URL:           s.Config.Uri,
+			Auth:          s.PublicKeys,
 			//		Progress:  os.Stdout,
 		}
 
@@ -80,7 +89,7 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 			return err
 		}
 
-		log.Debug().Msg("Cloned OK")
+		log.Debug().Msgf("Cloned [%s] OK", branch)
 	} else if err != nil {
 		return err
 	} else {
@@ -88,15 +97,6 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 		if err != nil {
 			return err
 		}
-
-		if branch == "" {
-			branch = s.Config.DefaultBranchName
-			if branch == "" {
-				branch = "master"
-			}
-		}
-
-		ref := plumbing.ReferenceName("refs/heads/" + branch)
 
 		coOpts := &goGit.CheckoutOptions{
 			Branch: ref,
