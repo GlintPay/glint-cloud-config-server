@@ -16,6 +16,8 @@ type GitConfig struct {
 	CloneOnStart bool `json:"clone-on-start"`
 	ForcePull    bool `json:"force-pull"`
 
+	ShowProgress bool `json:"show-progress"`
+
 	TimeoutMillis     int64 `json:"timeout"`
 	RefreshRateMillis int64 `json:"refreshRate"`
 }

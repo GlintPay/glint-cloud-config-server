@@ -82,11 +82,13 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 			ReferenceName: ref,
 			Depth:         depth,
 			URL:           s.Config.Uri,
-			//		Progress:  os.Stdout,
 		}
 
 		if s.PublicKeys != nil {
 			cloneOpts.Auth = s.PublicKeys
+		}
+		if s.Config.ShowProgress {
+			cloneOpts.Progress = os.Stdout
 		}
 
 		repo, err = goGit.PlainCloneContext(ctxt, s.Config.Basedir, false, cloneOpts)
@@ -135,11 +137,13 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 		po := &goGit.PullOptions{
 			Depth:         1,
 			ReferenceName: ref,
-			//Progress: os.Stdout,
 		}
 
 		if s.PublicKeys != nil {
 			po.Auth = s.PublicKeys
+		}
+		if s.Config.ShowProgress {
+			po.Progress = os.Stdout
 		}
 
 		err = w.Pull(po)
