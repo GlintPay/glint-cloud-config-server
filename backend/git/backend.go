@@ -145,13 +145,20 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 		if s.Config.ShowProgress {
 			po.Progress = os.Stdout
 		}
+		if s.Config.ForcePull {
+			po.Force = true
+		}
 
 		err = w.Pull(po)
 		if err != nil && err != goGit.NoErrAlreadyUpToDate {
 			return err
 		}
 
-		log.Debug().Msgf("Pulled OK")
+		if s.Config.ForcePull {
+			log.Debug().Msgf("Pulled OK (with force)")
+		} else {
+			log.Debug().Msgf("Pulled OK")
+		}
 	}
 
 	s.Repo = repo
