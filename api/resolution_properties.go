@@ -46,13 +46,18 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, p
 		}
 
 		if currVal, ok := pr.data[sourcePropertyWithDefault[0]]; ok {
-			currValStr := currVal.(string)
-			if strings.Contains(currValStr, "${") {
-				// recurse to resolve placeholder...
-				pr.resolveString(currentMap, sourcePropertyWithDefault[0], currValStr, prefix+"  ")
-			} else {
-				// this value is fine
-				return currValStr
+			switch currValStr := currVal.(type) {
+			case string:
+				if strings.Contains(currValStr, "${") {
+					// recurse to resolve placeholder...
+					pr.resolveString(currentMap, sourcePropertyWithDefault[0], currValStr, prefix+"  ")
+				} else {
+					// this value is fine
+					return currValStr
+				}
+			default:
+				// this value is fine, but convert to a string
+				return fmt.Sprintf("%v", currVal)
 			}
 		}
 
