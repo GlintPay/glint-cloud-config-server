@@ -135,7 +135,6 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 		}
 
 		po := &goGit.PullOptions{
-			Depth:         1,
 			ReferenceName: ref,
 		}
 
