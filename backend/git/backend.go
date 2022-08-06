@@ -22,17 +22,19 @@ import (
 func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfiguration) error {
 	s.Config = config.Git
 
-	hostKeyCallback, err := ssh.NewKnownHostsCallback(s.Config.KnownHostsFile)
-	if err != nil {
-		return err
-	}
+	if s.Config.PrivateKey != "" {
+		hostKeyCallback, err := ssh.NewKnownHostsCallback(s.Config.KnownHostsFile)
+		if err != nil {
+			return err
+		}
 
-	s.PublicKeys, err = ssh.NewPublicKeys("git", []byte(strings.TrimSpace(s.Config.PrivateKey)), "")
-	if err != nil {
-		return err
-	}
+		s.PublicKeys, err = ssh.NewPublicKeys("git", []byte(strings.TrimSpace(s.Config.PrivateKey)), "")
+		if err != nil {
+			return err
+		}
 
-	s.PublicKeys.HostKeyCallback = hostKeyCallback
+		s.PublicKeys.HostKeyCallback = hostKeyCallback
+	}
 
 	if s.Config.CloneOnStart {
 		log.Debug().Msg("Clone on startup...")
@@ -80,8 +82,11 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 			ReferenceName: ref,
 			Depth:         depth,
 			URL:           s.Config.Uri,
-			Auth:          s.PublicKeys,
 			//		Progress:  os.Stdout,
+		}
+
+		if s.PublicKeys != nil {
+			cloneOpts.Auth = s.PublicKeys
 		}
 
 		repo, err = goGit.PlainCloneContext(ctxt, s.Config.Basedir, false, cloneOpts)
@@ -127,12 +132,17 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 			defer span.End()
 		}
 
-		err = w.Pull(&goGit.PullOptions{
+		po := &goGit.PullOptions{
 			Depth:         1,
 			ReferenceName: ref,
-			Auth:          s.PublicKeys,
 			//Progress: os.Stdout,
-		})
+		}
+
+		if s.PublicKeys != nil {
+			po.Auth = s.PublicKeys
+		}
+
+		err = w.Pull(po)
 		if err != nil && err != goGit.NoErrAlreadyUpToDate {
 			return err
 		}
@@ -157,10 +167,15 @@ func fetchOrigin(repo *goGit.Repository, publicKeys *ssh.PublicKeys, refSpecStr 
 		refSpecs = []goGitConfig.RefSpec{goGitConfig.RefSpec(refSpecStr)}
 	}
 
-	if err = remote.Fetch(&goGit.FetchOptions{
+	fo := &goGit.FetchOptions{
 		RefSpecs: refSpecs,
-		Auth:     publicKeys,
-	}); err != nil {
+	}
+
+	if publicKeys != nil {
+		fo.Auth = publicKeys
+	}
+
+	if err = remote.Fetch(fo); err != nil {
 		if err == goGit.NoErrAlreadyUpToDate {
 			log.Debug().Msgf("refs already up to date")
 		} else {
