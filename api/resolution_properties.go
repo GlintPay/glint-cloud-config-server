@@ -22,22 +22,23 @@ func (pr *PropertiesResolver) resolvePlaceholders(currentMap map[string]interfac
 		switch typedVal := v.(type) {
 		case map[string]interface{}:
 			pr.resolvePlaceholders(typedVal)
-		case []string:
-			// TODO Incomplete
-			// for propertyName, v := range reconciled {
-			//	resolvePlaceholders(typedVal)
-			// }
+		case []interface{}:
+			resolved := make([]string, len(typedVal))
+			for i, eachUnresolved := range typedVal {
+				resolved[i] = pr.resolveString(currentMap, propertyName, eachUnresolved.(string))
+			}
+			currentMap[propertyName] = resolved // replace the whole thing
 		case string:
-			pr.resolveString(currentMap, propertyName, typedVal, "")
+			currentMap[propertyName] = pr.resolveString(currentMap, propertyName, typedVal)
 		}
 	}
 	return pr.data
 }
 
 // TODO Should missing properties be a configurable fatal error?
-func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, propertyName string, value string, prefix string) {
+func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, propertyName string, value string) string {
 
-	currentMap[propertyName] = placeholderRegex.ReplaceAllStringFunc(value, func(foundMatch string) string {
+	return placeholderRegex.ReplaceAllStringFunc(value, func(foundMatch string) string {
 		sourcePropertyWithDefault := pr.getPropertyClauseFromMatch(foundMatch)
 		if sourcePropertyWithDefault[0] == "" {
 			// ${} is not acceptable
@@ -45,12 +46,13 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, p
 			return UnresolvedPropertyResult
 		}
 
-		if currVal, ok := pr.data[sourcePropertyWithDefault[0]]; ok {
+		if currVal, ok := pr.resolvePropertyName(sourcePropertyWithDefault[0]); ok {
 			switch currValStr := currVal.(type) {
 			case string:
 				if strings.Contains(currValStr, "${") {
 					// recurse to resolve placeholder...
-					pr.resolveString(currentMap, sourcePropertyWithDefault[0], currValStr, prefix+"  ")
+					propName := sourcePropertyWithDefault[0]
+					currentMap[propName] = pr.resolveString(currentMap, propName, currValStr)
 				} else {
 					// this value is fine
 					return currValStr
@@ -62,7 +64,7 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, p
 		}
 
 		// Re-check post recurse
-		if updatedPropertyValue, ok := pr.data[sourcePropertyWithDefault[0]]; ok {
+		if updatedPropertyValue, ok := pr.resolvePropertyName(sourcePropertyWithDefault[0]); ok {
 			return updatedPropertyValue.(string)
 		}
 
@@ -77,6 +79,11 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, p
 
 		return UnresolvedPropertyResult
 	})
+}
+
+func (pr *PropertiesResolver) resolvePropertyName(name string) (interface{}, bool) {
+	val, ok := pr.data[name]
+	return val, ok
 }
 
 func (pr *PropertiesResolver) getPropertyClauseFromMatch(match string) []string {

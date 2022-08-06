@@ -143,6 +143,39 @@ func Test_resolvePlaceholders(t *testing.T) {
 				"Missing placeholder [${}] for property [vals.sub[5]]",
 			},
 		},
+		{
+			name: "lists-hier",
+			inputs: map[string]interface{}{
+				"a": 1.0,
+				"b": 2.0,
+				"vals": []string{
+					"w",
+					"${a}",
+					"${b}",
+					"${c:3}",
+					"${d}",
+					"${}",
+					"c",
+				},
+			},
+			expectation: map[string]interface{}{
+				"a": 1.0,
+				"b": 2.0,
+				"vals": []string{
+					"w",
+					"1",
+					"2",
+					"3",
+					"",
+					"",
+					"c",
+				},
+			},
+			messages: []string{
+				"Missing value for property [d]",
+				"Missing placeholder [${}] for property [vals]",
+			},
+		},
 	}
 	for _, tt := range tests {
 		for i := 1; i <= 10; i++ {
