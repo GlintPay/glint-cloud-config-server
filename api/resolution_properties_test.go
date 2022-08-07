@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/stretchr/testify/assert"
-	"reflect"
 	"testing"
 )
 
@@ -220,14 +219,6 @@ type placeholdersTest struct {
 	expectation      ResolvedConfigValues
 	expectedErrorMsg string
 	messages         []string
-}
-
-func MapCopy(dst, src interface{}) {
-	dv, sv := reflect.ValueOf(dst), reflect.ValueOf(src)
-
-	for _, k := range sv.MapKeys() {
-		dv.SetMapIndex(k, sv.MapIndex(k))
-	}
 }
 
 // Must deal with floats rather than ints if we're going to use this approach
