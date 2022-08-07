@@ -10,34 +10,35 @@ const UnresolvedPropertyResult = ""
 
 type PropertiesResolver struct {
 	data     ResolvedConfigValues
+	error    error
 	messages []string
 }
 
-func (pr *PropertiesResolver) resolvePlaceholdersFromTop() ResolvedConfigValues {
+func (pr *PropertiesResolver) resolvePlaceholdersFromTop() (ResolvedConfigValues, error) {
 	return pr.resolvePlaceholders(pr.data)
 }
 
-func (pr *PropertiesResolver) resolvePlaceholders(currentMap map[string]interface{}) ResolvedConfigValues {
+func (pr *PropertiesResolver) resolvePlaceholders(currentMap map[string]interface{}) (ResolvedConfigValues, error) {
 	for propertyName, v := range currentMap {
 		switch typedVal := v.(type) {
 		case map[string]interface{}:
-			pr.resolvePlaceholders(typedVal)
+			_, _ = pr.resolvePlaceholders(typedVal)
 		case []interface{}:
 			resolved := make([]string, len(typedVal))
+			stack := newStack()
 			for i, eachUnresolved := range typedVal {
-				resolved[i] = pr.resolveString(currentMap, propertyName, eachUnresolved.(string))
+				resolved[i] = pr.resolveString(currentMap, propertyName, eachUnresolved.(string), stack)
 			}
 			currentMap[propertyName] = resolved // replace the whole thing
 		case string:
-			currentMap[propertyName] = pr.resolveString(currentMap, propertyName, typedVal)
+			currentMap[propertyName] = pr.resolveString(currentMap, propertyName, typedVal, newStack())
 		}
 	}
-	return pr.data
+	return pr.data, pr.error
 }
 
 // TODO Should missing properties be a configurable fatal error?
-func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, propertyName string, value string) string {
-
+func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, propertyName string, value string, stack map[string]interface{}) string {
 	return placeholderRegex.ReplaceAllStringFunc(value, func(foundMatch string) string {
 		sourcePropertyWithDefault := pr.getPropertyClauseFromMatch(foundMatch)
 		if sourcePropertyWithDefault[0] == "" {
@@ -52,7 +53,16 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, p
 				if strings.Contains(currValStr, "${") {
 					// recurse to resolve placeholder...
 					propName := sourcePropertyWithDefault[0]
-					currentMap[propName] = pr.resolveString(currentMap, propName, currValStr)
+
+					///////////// Handle stack overflows
+					if stack != nil && stack[propName] != nil {
+						pr.error = fmt.Errorf("stack overflow found when resolving ${%s}", propName)
+						return ""
+					}
+					stack[propName] = true
+					/////////////
+
+					currentMap[propName] = pr.resolveString(currentMap, propName, currValStr, stack)
 				} else {
 					// this value is fine
 					return currValStr
@@ -94,4 +104,8 @@ func (pr *PropertiesResolver) addMessage(format string, v ...interface{}) {
 	msg := fmt.Sprintf(format, v...)
 	pr.messages = append(pr.messages, msg)
 	log.Warn().Msg(msg)
+}
+
+func newStack() map[string]interface{} {
+	return map[string]interface{}{}
 }

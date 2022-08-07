@@ -177,9 +177,21 @@ func Test_resolvePlaceholders(t *testing.T) {
 				"Missing placeholder [${}] for property [vals]",
 			},
 		},
+		{
+			name: "overflow",
+			inputs: map[string]interface{}{
+				"a": "${b}",
+				"b": "${a}",
+			},
+			expectation: map[string]interface{}{
+				"a": "",
+				"b": "",
+			},
+			expectedError: errors.New("stack overflow found when resolving ${b}"),
+		},
 	}
 	for _, tt := range tests {
-		for i := 1; i <= 10; i++ {
+		for i := 1; i <= 5; i++ {
 			t.Run(tt.name, func(t *testing.T) {
 				// Resolution is destructive, so let's make a *deep* copy
 				newData := map[string]interface{}{}
@@ -187,7 +199,14 @@ func Test_resolvePlaceholders(t *testing.T) {
 				assert.NoError(t, e)
 
 				rr := PropertiesResolver{data: newData}
-				result := rr.resolvePlaceholdersFromTop()
+				result, e := rr.resolvePlaceholdersFromTop()
+
+				if tt.expectedError != nil {
+					assert.Equal(t, tt.expectedError, e)
+				} else {
+					assert.NoError(t, e)
+				}
+
 				assert.Equal(t, tt.expectation, result)
 				assert.ElementsMatch(t, tt.messages, rr.messages)
 			})
@@ -196,10 +215,11 @@ func Test_resolvePlaceholders(t *testing.T) {
 }
 
 type placeholdersTest struct {
-	name        string
-	inputs      ResolvedConfigValues
-	expectation ResolvedConfigValues
-	messages    []string
+	name          string
+	inputs        ResolvedConfigValues
+	expectation   ResolvedConfigValues
+	expectedError error
+	messages      []string
 }
 
 func MapCopy(dst, src interface{}) {
