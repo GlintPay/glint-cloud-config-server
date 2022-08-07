@@ -11,14 +11,19 @@ import (
 	"strings"
 )
 
+type Resolvable interface {
+	ReconcileProperties(ctxt context.Context, applicationNames []string, profileNames []string, injections InjectedProperties, rawSource *Source) (ResolvedConfigValues, ResolutionMetadata, error)
+}
+
 type Resolver struct {
-	enableTrace        bool
-	pointlessOverrides []duplicate
+	enableTrace              bool
+	pointlessOverrides       []duplicate
+	propertiesResolverGetter func(ResolvedConfigValues) PropertiesResolvable
 }
 
 var placeholderRegex = regexp.MustCompile(`\${([^}]*)}`)
 
-func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []string, profileNames []string, injections InjectedProperties, rawSource *Source) (ResolvedConfigValues, ResolutionMetadata) {
+func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []string, profileNames []string, injections InjectedProperties, rawSource *Source) (ResolvedConfigValues, ResolutionMetadata, error) {
 	if f.enableTrace {
 		_, span := gotel.GetTracer(ctxt).Start(ctxt, "reconcile", gotel.ServerOptions)
 		defer span.End()
@@ -47,8 +52,10 @@ func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []
 	}
 
 	// Handle embedded references: ${propertyName} and ${propertyName:defaultValueIfMissing}. NB. Blank values don't trigger default.
-	rr := PropertiesResolver{data: reconciled}
-	rr.resolvePlaceholdersFromTop()
+	rr := f.newPropertiesResolverGetter(reconciled)
+	if _, e := rr.resolvePlaceholdersFromTop(); e != nil {
+		return reconciled, ResolutionMetadata{}, e
+	}
 
 	// Copy non-^ ones at highest level
 	for k, v := range injections {
@@ -63,7 +70,7 @@ func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []
 
 	return reconciled, ResolutionMetadata{
 		PrecedenceDisplayMessage: sourceNames,
-	}
+	}, nil
 }
 
 func (f *Resolver) overrideValue(reconciled map[string]interface{}, k string, v interface{}, source string) {
@@ -97,6 +104,16 @@ func (f *Resolver) overrideValue(reconciled map[string]interface{}, k string, v 
 	} else {
 		f.pointlessOverrides = append(f.pointlessOverrides, duplicate{key: k, value: v, source: source})
 	}
+}
+
+func (f *Resolver) newPropertiesResolverGetter(vals ResolvedConfigValues) PropertiesResolvable {
+	if f.propertiesResolverGetter == nil {
+		f.propertiesResolverGetter = func(r ResolvedConfigValues) PropertiesResolvable {
+			return &PropertiesResolver{data: r}
+		}
+	}
+
+	return f.propertiesResolverGetter(vals)
 }
 
 func getPropertySourceNames(sources []PropertySource) string {

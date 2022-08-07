@@ -25,6 +25,8 @@ type Routing struct {
 
 	AppConfig config.ApplicationConfiguration
 	Backends  backend.Backends
+
+	resolverGetter func() Resolvable
 }
 
 func (rtr *Routing) SetupFunctionalRoutes(r chi.Router) error {
@@ -61,7 +63,11 @@ func (rtr *Routing) propertySourcesHandler() http.HandlerFunc {
 		resolveVal := overrideBooleanDefault(queries.Get("resolve"), rtr.AppConfig.Defaults.ResolvePropertySources)
 		if resolveVal {
 			resolver := rtr.newResolver()
-			values, metadata := resolver.ReconcileProperties(r.Context(), req.Applications, req.Profiles, InjectedProperties{}, source)
+			values, metadata, e := resolver.ReconcileProperties(r.Context(), req.Applications, req.Profiles, InjectedProperties{}, source)
+			if e != nil {
+				rtr.writeError(w, e)
+				return
+			}
 
 			writeHeaders(w.Header(), req, metadata, source)
 
@@ -106,7 +112,11 @@ func (rtr *Routing) propertySourcesHandlerWithInjections() http.HandlerFunc {
 			}
 
 			resolver := rtr.newResolver()
-			values, metadata := resolver.ReconcileProperties(r.Context(), req.Applications, req.Profiles, injected, source)
+			values, metadata, e := resolver.ReconcileProperties(r.Context(), req.Applications, req.Profiles, injected, source)
+			if e != nil {
+				rtr.writeError(w, e)
+				return
+			}
 
 			writeHeaders(w.Header(), req, metadata, source)
 
@@ -203,10 +213,16 @@ func (rtr *Routing) enableOTelForRouter(r chi.Router) error {
 	return nil
 }
 
-func (rtr *Routing) newResolver() Resolver {
-	return Resolver{
-		enableTrace: rtr.AppConfig.Tracing.Enabled,
+func (rtr *Routing) newResolver() Resolvable {
+	if rtr.resolverGetter == nil {
+		rtr.resolverGetter = func() Resolvable {
+			return &Resolver{
+				enableTrace: rtr.AppConfig.Tracing.Enabled,
+			}
+		}
 	}
+
+	return rtr.resolverGetter()
 }
 
 func overrideBooleanDefault(queryValue string, defaultVal bool) bool {

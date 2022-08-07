@@ -8,6 +8,10 @@ import (
 
 const UnresolvedPropertyResult = ""
 
+type PropertiesResolvable interface {
+	resolvePlaceholdersFromTop() (ResolvedConfigValues, error)
+}
+
 type PropertiesResolver struct {
 	data     ResolvedConfigValues
 	error    error

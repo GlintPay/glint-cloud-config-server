@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"github.com/GlintPay/gccs/internal/test"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -26,8 +27,9 @@ func Test_reconcileProperties(t *testing.T) {
 		}}
 
 	resolver := Resolver{}
-	resolved, md := resolver.ReconcileProperties(ctxt, []string{"myapp", "backend"}, []string{"production", "mine"}, InjectedProperties{}, &source)
+	resolved, md, e := resolver.ReconcileProperties(ctxt, []string{"myapp", "backend"}, []string{"production", "mine"}, InjectedProperties{}, &source)
 
+	assert.NoError(t, e)
 	assert.Equal(t, "myapp-production.yml > myapp-mine.yml > myapp.yml > backend-production.yml > backend-mine.yml > backend.yml > application-production.yml > application.yml", md.PrecedenceDisplayMessage)
 
 	assert.Equal(t,
@@ -77,8 +79,9 @@ func Test_reconcileProperties_ListsReplacedNotMerged(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := Resolver{}
-			resolved, _ := resolver.ReconcileProperties(ctxt, []string{"myapp"}, []string{"production", "mine"}, InjectedProperties{}, &Source{Name: "test-app", PropertySources: tt.sources})
+			resolved, _, e := resolver.ReconcileProperties(ctxt, []string{"myapp"}, []string{"production", "mine"}, InjectedProperties{}, &Source{Name: "test-app", PropertySources: tt.sources})
 
+			assert.NoError(t, e)
 			assert.Equal(t, tt.expectation, resolved)
 		})
 	}
@@ -104,8 +107,9 @@ func Test_reconcilePropertiesWithInjection(t *testing.T) {
 	injections := InjectedProperties{ /* overwritten */ "^owner": "Mine" /* overwritten */, "^glint.name": "blah" /* good */, "^injectedServicename": "blah", "glint.c": "overwrite!"}
 
 	resolver := Resolver{}
-	resolved, md := resolver.ReconcileProperties(ctxt, []string{"test-app"}, []string{"production", "mine"}, injections, &source)
+	resolved, md, e := resolver.ReconcileProperties(ctxt, []string{"test-app"}, []string{"production", "mine"}, injections, &source)
 
+	assert.NoError(t, e)
 	assert.Equal(t, "backend-mine.yml > backend.yml > application-development-eu.yml > application.yml", md.PrecedenceDisplayMessage)
 
 	assert.Equal(t,
@@ -123,8 +127,9 @@ func Test_reconcileWithPointlessOverride(t *testing.T) {
 		}}
 
 	resolver := Resolver{}
-	resolved, md := resolver.ReconcileProperties(ctxt, []string{"test-app"}, []string{"production", "mine"}, InjectedProperties{}, &source)
+	resolved, md, e := resolver.ReconcileProperties(ctxt, []string{"test-app"}, []string{"production", "mine"}, InjectedProperties{}, &source)
 
+	assert.NoError(t, e)
 	assert.Equal(t, "backend-mine.yml > backend.yml", md.PrecedenceDisplayMessage)
 	assert.Equal(t, []duplicate{{key: "owner", value: "Mine", source: "backend-mine.yml"}}, resolver.pointlessOverrides)
 	assert.Equal(t, ResolvedConfigValues{"owner": "Mine", "type": "backend"}, resolved)
@@ -139,8 +144,9 @@ func Test_reconcileProperties_defaultValue(t *testing.T) {
 		}}
 
 	resolver := Resolver{}
-	resolved, _ := resolver.ReconcileProperties(ctxt, []string{"xxx"}, []string{}, nil, &source)
+	resolved, _, e := resolver.ReconcileProperties(ctxt, []string{"xxx"}, []string{}, nil, &source)
 
+	assert.NoError(t, e)
 	assert.Equal(t, resolved, ResolvedConfigValues{"glint.a": "b", "myService.url": "https://goodDefault.glintpay.com"})
 	assert.Empty(t, resolver.pointlessOverrides)
 }
@@ -154,9 +160,10 @@ func Test_reconcileProperties_missingPropertyRef(t *testing.T) {
 		}}
 
 	resolver := Resolver{}
-	resolved, _ := resolver.ReconcileProperties(ctxt, []string{"xxx"}, []string{}, nil, &source)
-	assert.Equal(t, resolved, ResolvedConfigValues{"glint.a": "b", "myService.url": "https://.glintpay.com"})
+	resolved, _, e := resolver.ReconcileProperties(ctxt, []string{"xxx"}, []string{}, nil, &source)
 
+	assert.NoError(t, e)
+	assert.Equal(t, resolved, ResolvedConfigValues{"glint.a": "b", "myService.url": "https://.glintpay.com"})
 	assert.Empty(t, resolver.pointlessOverrides)
 
 	// Was: assert.PanicsWithValue(t, "Missing value for property [NON_EXISTENT]", func() { resolver.ReconcileProperties([]string{"xxx"}, []string{}, nil, &source) })
@@ -171,9 +178,10 @@ func Test_reconcileProperties_missingPlaceholder(t *testing.T) {
 		}}
 
 	resolver := Resolver{}
-	resolved, _ := resolver.ReconcileProperties(ctxt, []string{"xxx"}, []string{}, nil, &source)
-	assert.Equal(t, resolved, ResolvedConfigValues{"glint.a": "b", "myService.url": "https://.glintpay.com"})
+	resolved, _, e := resolver.ReconcileProperties(ctxt, []string{"xxx"}, []string{}, nil, &source)
 
+	assert.NoError(t, e)
+	assert.Equal(t, resolved, ResolvedConfigValues{"glint.a": "b", "myService.url": "https://.glintpay.com"})
 	assert.Empty(t, resolver.pointlessOverrides)
 
 	// Was: assert.PanicsWithValue(t, "Missing placeholder [${  }] for property [myService.url]", func() { resolver.ReconcileProperties([]string{"xxx"}, []string{}, nil, &source) })
@@ -193,7 +201,9 @@ func Test_MapOverrideDoesntFailWithUncomparableTypesPanic(t *testing.T) {
 	resolver := Resolver{}
 
 	var hierConfig Blah
-	resolved, _ := resolver.ReconcileProperties(ctxt, []string{"xxx"}, []string{"production", "mine"}, nil, &source)
+	resolved, _, e := resolver.ReconcileProperties(ctxt, []string{"xxx"}, []string{"production", "mine"}, nil, &source)
+	assert.NoError(t, e)
+
 	err := test.MarshalHierarchicalTo(resolved, &hierConfig)
 	assert.NoError(t, err)
 
@@ -215,7 +225,9 @@ func Test_MarshalHierarchicalTo(t *testing.T) {
 	resolver := Resolver{}
 
 	var hierConfig TestHierarchicalConfig
-	resolved, _ := resolver.ReconcileProperties(ctxt, []string{"test-app"}, []string{"production", "mine"}, nil, &source)
+	resolved, _, e := resolver.ReconcileProperties(ctxt, []string{"test-app"}, []string{"production", "mine"}, nil, &source)
+	assert.NoError(t, e)
+
 	err := test.MarshalHierarchicalTo(resolved, &hierConfig)
 	assert.NoError(t, err)
 
@@ -236,7 +248,9 @@ func Test_MarshalFlattenedTo(t *testing.T) {
 	resolver := Resolver{}
 
 	var flattenedConfig TestFlattenedConfig
-	resolved, _ := resolver.ReconcileProperties(ctxt, []string{"test-app"}, []string{"production", "mine"}, nil, &source)
+	resolved, _, e := resolver.ReconcileProperties(ctxt, []string{"test-app"}, []string{"production", "mine"}, nil, &source)
+	assert.NoError(t, e)
+
 	err := test.MarshalFlattenedTo(resolved, &flattenedConfig)
 	assert.NoError(t, err)
 
@@ -250,11 +264,37 @@ func Test_emptyPropertySource(t *testing.T) {
 		PropertySources: []PropertySource{}}
 
 	resolver := Resolver{}
-	resolved, md := resolver.ReconcileProperties(ctxt, []string{"test-app"}, []string{"production", "mine"}, InjectedProperties{}, &source)
+	resolved, md, e := resolver.ReconcileProperties(ctxt, []string{"test-app"}, []string{"production", "mine"}, InjectedProperties{}, &source)
 
+	assert.NoError(t, e)
 	assert.Empty(t, md.PrecedenceDisplayMessage)
 	assert.Empty(t, resolver.pointlessOverrides)
 	assert.Empty(t, resolved)
+}
+
+func Test_badPropertiesResolver(t *testing.T) {
+	ctxt := context.Background()
+
+	source := Source{Name: "test-app"}
+
+	resolver := Resolver{}
+	resolver.propertiesResolverGetter = func(ResolvedConfigValues) PropertiesResolvable {
+		return badPropertiesResolverGetter{}
+	}
+
+	resolved, _, e := resolver.ReconcileProperties(ctxt, []string{"test-app"}, []string{"production", "mine"}, InjectedProperties{}, &source)
+
+	assert.ErrorContains(t, e, BadPGMsg)
+	assert.Empty(t, resolved)
+}
+
+type badPropertiesResolverGetter struct {
+}
+
+const BadPGMsg = "bad-pg"
+
+func (b badPropertiesResolverGetter) resolvePlaceholdersFromTop() (ResolvedConfigValues, error) {
+	return ResolvedConfigValues{}, errors.New(BadPGMsg)
 }
 
 type Blah struct {

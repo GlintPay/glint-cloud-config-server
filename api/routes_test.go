@@ -2,6 +2,8 @@ package api
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"github.com/GlintPay/gccs/backend"
 	"github.com/GlintPay/gccs/backend/git"
@@ -51,7 +53,7 @@ func Test_routesHierarchical(t *testing.T) {
 
 	expectedVersion := _getHash(repo)
 
-	router := setUpRouter(t, backends, false)
+	router, _ := setUpRouter(t, backends, false)
 
 	//////////////////////////////////////////////////////
 
@@ -288,7 +290,7 @@ func Test_routesFlattened(t *testing.T) {
 
 	expectedVersion := _getHash(repo)
 
-	router := setUpRouter(nil, backends, false)
+	router, _ := setUpRouter(nil, backends, false)
 
 	//////////////////////////////////////////////////////
 
@@ -495,7 +497,7 @@ accountstuff:
 
 	expectedVersion := _getHash(repo)
 
-	router := setUpRouter(nil, backends, false)
+	router, _ := setUpRouter(nil, backends, false)
 
 	//////////////////////////////////////////////////////
 
@@ -548,7 +550,7 @@ func Test_routesTraceEnabled(t *testing.T) {
 	tracerProvider.RegisterSpanProcessor(sr)
 	otel.SetTracerProvider(tracerProvider)
 
-	router := setUpRouter(t, backends, true)
+	router, _ := setUpRouter(t, backends, true)
 
 	//////////////////////////////////////////////////////
 
@@ -612,7 +614,7 @@ func Test_routesResponseLoggingEnabled(t *testing.T) {
 		Repo: repo,
 	})
 
-	router := setUpRouter(t, backends, true)
+	router, _ := setUpRouter(t, backends, true)
 
 	//////////////////////////////////////////////////////
 
@@ -661,7 +663,7 @@ func Test_routesResponseErrorsLogged(t *testing.T) {
 		Repo: repo,
 	})
 
-	router := setUpRouter(t, backends, true)
+	router, _ := setUpRouter(t, backends, true)
 
 	//////////////////////////////////////////////////////
 
@@ -688,6 +690,66 @@ func Test_routesResponseErrorsLogged(t *testing.T) {
 	}
 }
 
+func Test_routesResponseErrorsViaResolutionErrors(t *testing.T) {
+
+	gitDir, err := os.MkdirTemp("", "*")
+	assert.NoError(t, err)
+	defer os.Remove(gitDir)
+
+	repo, err := goGit.PlainInit(gitDir, false)
+	assert.NoError(t, err)
+
+	wt, err := repo.Worktree()
+	assert.NoError(t, err)
+
+	_writeGitFile(t, gitDir, wt, "application.yaml", `{"a":"b"`)
+
+	setUpFiles(t, gitDir, wt)
+
+	var backends backend.Backends
+	backends = append(backends, &git.Backend{
+		Repo: repo,
+	})
+
+	router, routing := setUpRouter(t, backends, false)
+
+	routing.resolverGetter = func() Resolvable {
+		return badResolver{}
+	}
+
+	//////////////////////////////////////////////////////
+
+	tests := []ExampleRequest{
+		{
+			method:     "GET",
+			url:        "/application/blah?resolve=true&norefresh", // don't refresh git
+			statusCode: 500,
+			jsonOutput: `{"message":"` + badResolverMsg + `"}`,
+		},
+		{
+			method:     "PATCH",
+			url:        "/application/blah?resolve=true&norefresh", // don't refresh git
+			statusCode: 500,
+			jsonOutput: `{"message":"` + badResolverMsg + `"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.url, func(t *testing.T) {
+			validateRequest(t, tt, tt.jsonOutput, router, "")
+		})
+	}
+}
+
+type badResolver struct {
+}
+
+const badResolverMsg = "bad resolver"
+
+func (b badResolver) ReconcileProperties(ctxt context.Context, _ []string, _ []string, _ InjectedProperties, _ *Source) (ResolvedConfigValues, ResolutionMetadata, error) {
+	return ResolvedConfigValues{}, ResolutionMetadata{}, errors.New(badResolverMsg)
+}
+
 func validateRequest(t *testing.T, tt ExampleRequest, jsonOutput string, router http.Handler, urlSuffix string) {
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(tt.method, tt.url+urlSuffix, tt.body) // don't refresh git
@@ -702,7 +764,7 @@ func validateRequest(t *testing.T, tt ExampleRequest, jsonOutput string, router 
 	}
 }
 
-func setUpRouter(t *testing.T, bs backend.Backends, traceEnabled bool) *chi.Mux {
+func setUpRouter(t *testing.T, bs backend.Backends, traceEnabled bool) (*chi.Mux, *Routing) {
 	router := chi.NewRouter()
 	router.Use(middleware.StripSlashes)
 
@@ -726,7 +788,8 @@ func setUpRouter(t *testing.T, bs backend.Backends, traceEnabled bool) *chi.Mux 
 		err := routing.SetupFunctionalRoutes(r)
 		assert.NoError(t, err)
 	})
-	return router
+
+	return router, &routing
 }
 
 func setUpFiles(t *testing.T, gitDir string, wt *goGit.Worktree) {
