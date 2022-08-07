@@ -187,7 +187,7 @@ func Test_resolvePlaceholders(t *testing.T) {
 				"a": "",
 				"b": "",
 			},
-			expectedError: errors.New("stack overflow found when resolving ${b}"),
+			expectedErrorMsg: "stack overflow found when resolving ${",
 		},
 	}
 	for _, tt := range tests {
@@ -201,8 +201,8 @@ func Test_resolvePlaceholders(t *testing.T) {
 				rr := PropertiesResolver{data: newData}
 				result, e := rr.resolvePlaceholdersFromTop()
 
-				if tt.expectedError != nil {
-					assert.Equal(t, tt.expectedError, e)
+				if tt.expectedErrorMsg != "" {
+					assert.ErrorContains(t, e, tt.expectedErrorMsg)
 				} else {
 					assert.NoError(t, e)
 				}
@@ -215,11 +215,11 @@ func Test_resolvePlaceholders(t *testing.T) {
 }
 
 type placeholdersTest struct {
-	name          string
-	inputs        ResolvedConfigValues
-	expectation   ResolvedConfigValues
-	expectedError error
-	messages      []string
+	name             string
+	inputs           ResolvedConfigValues
+	expectation      ResolvedConfigValues
+	expectedErrorMsg string
+	messages         []string
 }
 
 func MapCopy(dst, src interface{}) {
