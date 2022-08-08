@@ -12,13 +12,69 @@ The aims for our project are:
 
 ---
 
-Docker run:
+### Docker image:
 
     docker pull glintpay/glint-cloud-config-server
 
 [Docker Hub](https://hub.docker.com/repository/docker/glintpay/glint-cloud-config-server)
 
-Local build & run:
+### Docker run:
 
-    make install
-    APP_CONFIG_FILE_YML_PATH=../glint-cloud-config-server-deploy/docker-build/application.yml gak
+    docker run -p 8888:80 \
+        -v /here/conf/:/conf \
+        -v /here/ssh/:/ssh \
+        -e APP_CONFIG_FILE_YML_PATH=/conf/application.yml \
+        glintpay/glint-cloud-config-server
+
+### Example configuration file:
+
+    server:
+      port: 8888  # defaults to 80
+    
+    defaults:
+      flattenHierarchicalConfig: true
+      flattenedIndexedLists: true
+      resolvePropertySources: false
+    
+    prometheus:
+      path: /metrics  # ignored if not set
+    
+    tracing:
+      enabled: true
+      endpoint: opentelemetry-traces:4318
+      samplerFraction: 0.5  # Sample only 50% of traces
+    
+    file:
+      order: 0
+      path: /config-dir
+       
+    git:
+      order: 1
+      uri: git@github.com:Org/repo.git
+      knownHostsFile: /ssh/github_known_hosts
+      privateKey: |
+      -----BEGIN RSA PRIVATE KEY-----
+      ...
+      -----END RSA PRIVATE KEY-----
+    
+      basedir: /tmp/cloud-config
+      timeout: 30000
+      clone-on-start: true
+      force-pull: false
+      show-progress: false  # log clones and pulls
+      refreshRate: 0        # default = 0 secs => Fetch updated configuration from the Git repo every time it is requested
+
+### Testing:
+
+One application, multiple ordered profiles, main Git branch:
+
+    http "localhost:8888/myapp/production-usa,production-base?resolve=true&flatten=true"
+
+One application, one profile, custom label (labelled Git branch):
+
+    http "localhost:8888/myapp/testing-uk/refactor?resolve=true&flatten=true"
+
+Inject, override custom properties:
+
+    http "localhost:8888/myapp/production-uk?resolve=true&flatten=true" baseUrl=http://uk-test bypass=true
+
