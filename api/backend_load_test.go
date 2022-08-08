@@ -149,6 +149,22 @@ accountstuff:
     - DEF
     - GHI
     - JKL
+
+more: &reuse
+  name: Stuff
+  script:
+    - do this
+  results:
+    - target/**
+
+develop:
+  - main: *reuse
+production:
+  - main: 
+      <<: *reuse
+      name: Production stuff #override
+      extension: false
+
 `)
 
 	_writeGitFile(t, gitDir, wt, "accounts-production.yaml", `
@@ -209,6 +225,9 @@ c: d344
 						"val":        "xxx",
 						"currencies": []interface{}{"DEF", "GHI", "JKL"},
 					},
+					"more":       map[string]interface{}{"name": "Stuff", "results": []interface{}{"target/**"}, "script": []interface{}{"do this"}},
+					"develop":    []interface{}{map[string]interface{}{"main": map[string]interface{}{"name": "Stuff", "results": []interface{}{"target/**"}, "script": []interface{}{"do this"}}}},
+					"production": []interface{}{map[string]interface{}{"main": map[string]interface{}{"name": "Production stuff", "extension": false, "results": []interface{}{"target/**"}, "script": []interface{}{"do this"}}}},
 				},
 			},
 			{
