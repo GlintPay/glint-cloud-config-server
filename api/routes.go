@@ -57,7 +57,7 @@ func (rtr *Routing) propertySourcesHandler() http.HandlerFunc {
 			return
 		}
 
-		var configJsonBytes []byte
+		var configJSONBytes []byte
 		var outputErr error
 
 		resolveVal := overrideBooleanDefault(queries.Get("resolve"), rtr.AppConfig.Defaults.ResolvePropertySources)
@@ -71,12 +71,12 @@ func (rtr *Routing) propertySourcesHandler() http.HandlerFunc {
 
 			writeHeaders(w.Header(), req, metadata, source)
 
-			configJsonBytes, outputErr = marshalResponseJson(values, req.PrettyPrintJson)
+			configJSONBytes, outputErr = marshalResponseJSON(values, req.PrettyPrintJson)
 		} else {
-			configJsonBytes, outputErr = marshalResponseJson(source, req.PrettyPrintJson)
+			configJSONBytes, outputErr = marshalResponseJSON(source, req.PrettyPrintJson)
 		}
 
-		rtr.handleOutput(w, outputErr, configJsonBytes, req.LogResponses)
+		rtr.handleOutput(w, outputErr, configJSONBytes, req.LogResponses)
 	}
 }
 
@@ -95,7 +95,7 @@ func (rtr *Routing) propertySourcesHandlerWithInjections() http.HandlerFunc {
 			return
 		}
 
-		var configJsonBytes []byte
+		var configJSONBytes []byte
 		var outputErr error
 
 		resolveVal := overrideBooleanDefault(queries.Get("resolve"), rtr.AppConfig.Defaults.ResolvePropertySources)
@@ -120,16 +120,16 @@ func (rtr *Routing) propertySourcesHandlerWithInjections() http.HandlerFunc {
 
 			writeHeaders(w.Header(), req, metadata, source)
 
-			configJsonBytes, outputErr = marshalResponseJson(values, req.PrettyPrintJson)
+			configJSONBytes, outputErr = marshalResponseJSON(values, req.PrettyPrintJson)
 		} else {
-			configJsonBytes, outputErr = marshalResponseJson(source, req.PrettyPrintJson)
+			configJSONBytes, outputErr = marshalResponseJSON(source, req.PrettyPrintJson)
 		}
 
-		rtr.handleOutput(w, outputErr, configJsonBytes, req.LogResponses)
+		rtr.handleOutput(w, outputErr, configJSONBytes, req.LogResponses)
 	}
 }
 
-func marshalResponseJson(val interface{}, pretty bool) ([]byte, error) {
+func marshalResponseJSON(val interface{}, pretty bool) ([]byte, error) {
 	if pretty {
 		return json.MarshalIndent(val, "", "  ")
 	}
@@ -181,7 +181,7 @@ func (rtr *Routing) newRequestFromChi(r *http.Request) (ConfigurationRequest, ur
 	flattenVal := overrideBooleanDefault(queries.Get("flatten"), rtr.AppConfig.Defaults.FlattenHierarchicalConfig)
 	flattenedIndexedListsVal := overrideBooleanDefault(queries.Get("flattenLists"), rtr.AppConfig.Defaults.FlattenedIndexedLists)
 	logResponses := overrideBooleanDefault(queries.Get("logResponses"), rtr.AppConfig.Defaults.LogResponses)
-	prettyPrintJson := overrideBooleanDefault(queries.Get("pretty"), rtr.AppConfig.Defaults.PrettyPrintJson)
+	prettyPrintJSON := overrideBooleanDefault(queries.Get("pretty"), rtr.AppConfig.Defaults.PrettyPrintJson)
 
 	return ConfigurationRequest{
 		Applications: utils.SplitApplicationNames(matchApplicationCsv),
@@ -192,7 +192,7 @@ func (rtr *Routing) newRequestFromChi(r *http.Request) (ConfigurationRequest, ur
 		FlattenHierarchies:    flattenVal,
 		FlattenedIndexedLists: flattenedIndexedListsVal,
 		LogResponses:          logResponses,
-		PrettyPrintJson:       prettyPrintJson,
+		PrettyPrintJson:       prettyPrintJSON,
 
 		EnableTrace: rtr.AppConfig.Tracing.Enabled,
 	}, queries, nil
