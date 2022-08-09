@@ -78,19 +78,7 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 			depth = 1 // shallow
 		}
 
-		cloneOpts := &goGit.CloneOptions{
-			ReferenceName: ref,
-			Depth:         depth,
-			URL:           s.Config.Uri,
-		}
-
-		if s.PublicKeys != nil {
-			cloneOpts.Auth = s.PublicKeys
-		}
-		if s.Config.ShowProgress {
-			cloneOpts.Progress = os.Stdout
-		}
-
+		cloneOpts := s.getCloneOptions(ref, depth)
 		repo, err = goGit.PlainCloneContext(ctxt, s.Config.Basedir, false, cloneOpts)
 		if err != nil {
 			return err
@@ -134,20 +122,7 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 			defer span.End()
 		}
 
-		po := &goGit.PullOptions{
-			ReferenceName: ref,
-		}
-
-		if s.PublicKeys != nil {
-			po.Auth = s.PublicKeys
-		}
-		if s.Config.ShowProgress {
-			po.Progress = os.Stdout
-		}
-		if s.Config.ForcePull {
-			po.Force = true
-		}
-
+		po := s.getPullOptions(ref)
 		err = w.Pull(po)
 		if err != nil && err != goGit.NoErrAlreadyUpToDate {
 			return err
@@ -163,6 +138,41 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 	s.Repo = repo
 
 	return nil
+}
+
+func (s *Backend) getCloneOptions(ref plumbing.ReferenceName, depth int) *goGit.CloneOptions {
+	cloneOpts := &goGit.CloneOptions{
+		ReferenceName: ref,
+		Depth:         depth,
+		URL:           s.Config.Uri,
+	}
+
+	if s.PublicKeys != nil {
+		cloneOpts.Auth = s.PublicKeys
+	}
+	if s.Config.ShowProgress {
+		cloneOpts.Progress = os.Stdout
+	}
+
+	return cloneOpts
+}
+
+func (s *Backend) getPullOptions(ref plumbing.ReferenceName) *goGit.PullOptions {
+	po := &goGit.PullOptions{
+		ReferenceName: ref,
+	}
+
+	if s.PublicKeys != nil {
+		po.Auth = s.PublicKeys
+	}
+	if s.Config.ShowProgress {
+		po.Progress = os.Stdout
+	}
+	if s.Config.ForcePull {
+		po.Force = true
+	}
+
+	return po
 }
 
 // Borrowed from https://github.com/go-git/go-git/pull/446/files/62e512f0805303f9c245890bf2599295fc0f9774#diff-15808dd1f39f7d3198c9803a02fc1222b866ad5705b5aea887bb6a89ad572223
