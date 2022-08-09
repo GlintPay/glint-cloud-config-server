@@ -17,6 +17,7 @@ type fileItrWrapper struct {
 type fileWrapper struct {
 	FileName string
 	Path     string
+	Dir      string
 }
 
 type file struct {

@@ -219,7 +219,7 @@ func (s *Backend) GetCurrentState(ctxt context.Context, branch string, refresh b
 	}
 
 	return &backend.State{
-		Files:   fileItrWrapper{RepoUri: s.Config.Uri, Files: commitFiles},
+		Files:   fileItrWrapper{Dir: s.Config.Basedir, RepoUri: s.Config.Uri, Files: commitFiles},
 		Version: commit.Hash.String(),
 	}, nil
 }
@@ -248,6 +248,10 @@ func (g fileWrapper) FullyQualifiedName() string {
 	return g.RepoUri + "/" + g.File.Name
 }
 
+func (g fileWrapper) Location() string {
+	return g.Dir
+}
+
 func (g fileWrapper) Data() backend.Blob {
 	return fileBlob{Blob: &g.File.Blob}
 }
@@ -258,6 +262,6 @@ func (g fileBlob) Reader() (io.ReadCloser, error) {
 
 func (itr fileItrWrapper) ForEach(handler func(f backend.File) error) error {
 	return itr.Files.ForEach(func(f *object.File) error {
-		return handler(fileWrapper{RepoUri: itr.RepoUri, File: f})
+		return handler(fileWrapper{Dir: itr.Dir, RepoUri: itr.RepoUri, File: f})
 	})
 }

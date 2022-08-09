@@ -54,6 +54,10 @@ func (g fileWrapper) FullyQualifiedName() string {
 	return g.Path
 }
 
+func (g fileWrapper) Location() string {
+	return g.Dir
+}
+
 func (g fileWrapper) Data() backend.Blob {
 	return file{Path: g.Path}
 }
@@ -71,7 +75,7 @@ func (itr fileItrWrapper) ForEach(handler func(f backend.File) error) error {
 	for _, d := range dirEntry {
 		name := d.Name()
 		filePath := path.Join([]string{itr.DirPath, name}...)
-		if e := handler(fileWrapper{FileName: name, Path: filePath}); e != nil {
+		if e := handler(fileWrapper{Dir: itr.DirPath, FileName: name, Path: filePath}); e != nil {
 			return e
 		}
 	}

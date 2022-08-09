@@ -31,6 +31,7 @@ type FileIterator interface {
 type File interface {
 	Name() string
 	FullyQualifiedName() string
+	Location() string
 
 	IsReadable() (bool, string)
 	Data() Blob

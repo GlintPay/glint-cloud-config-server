@@ -21,11 +21,13 @@ func (b *Backend) Order() int {
 type fileItrWrapper struct {
 	RepoUri string
 	Files   *object.FileIter
+	Dir     string
 }
 
 type fileWrapper struct {
 	RepoUri string
 	File    *object.File
+	Dir     string
 }
 
 type fileBlob struct {

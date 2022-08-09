@@ -137,6 +137,8 @@ var joinerFunc = func(k []string) string {
 
 func newDiscoveryHandler(req ConfigurationRequest, source *Source) discoveryHandler {
 	return func(f backend.File) error {
+		log.Info().Msgf("Adding property source: Config resource '%s' via location '%s'", f.FullyQualifiedName(), f.Location())
+
 		mapStructuredData, err := f.ToMap()
 		if err != nil {
 			return err
