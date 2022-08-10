@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"github.com/GlintPay/gccs/config"
 	gotel "github.com/GlintPay/gccs/otel"
 	"github.com/GlintPay/gccs/utils"
 	"github.com/rs/zerolog/log"
@@ -15,6 +16,7 @@ type Resolvable interface {
 }
 
 type Resolver struct {
+	templateConfig           config.GoTemplate
 	enableTrace              bool
 	pointlessOverrides       []duplicate
 	propertiesResolverGetter func(ResolvedConfigValues) PropertiesResolvable
@@ -49,7 +51,7 @@ func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []
 	}
 
 	// Handle embedded references: ${propertyName} and ${propertyName:defaultValueIfMissing}. NB. Blank values don't trigger default.
-	rr := f.newPropertiesResolverGetter(reconciled)
+	rr := f.newPropertiesResolverGetter(applicationNames, profileNames, reconciled)
 	if _, e := rr.resolvePlaceholdersFromTop(); e != nil {
 		return reconciled, ResolutionMetadata{}, e
 	}
@@ -103,10 +105,17 @@ func (f *Resolver) overrideValue(reconciled map[string]interface{}, k string, v 
 	}
 }
 
-func (f *Resolver) newPropertiesResolverGetter(vals ResolvedConfigValues) PropertiesResolvable {
+func (f *Resolver) newPropertiesResolverGetter(applicationNames []string, profileNames []string, vals ResolvedConfigValues) PropertiesResolvable {
 	if f.propertiesResolverGetter == nil {
 		f.propertiesResolverGetter = func(r ResolvedConfigValues) PropertiesResolvable {
-			return &PropertiesResolver{data: r}
+			return &PropertiesResolver{
+				data:           r,
+				templateConfig: f.templateConfig.Validate(),
+				templatesData: map[string]interface{}{
+					"Applications": applicationNames,
+					"Profiles":     profileNames,
+				},
+			}
 		}
 	}
 

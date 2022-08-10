@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"github.com/GlintPay/gccs/config"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -57,6 +58,24 @@ func Test_resolvePlaceholders(t *testing.T) {
 			inputs: map[string]interface{}{
 				"a": "Application: {{ first .Applications }}, Profile: {{ first .Profiles }}",
 			},
+			templatesData: map[string]interface{}{
+				"Applications": []string{"accounts", "application"},
+				"Profiles":     []string{"prod-uk", "prod", "base"},
+			},
+			expectation: map[string]interface{}{
+				"a": "Application: accounts, Profile: prod-uk",
+			},
+		},
+		{
+			name: "templates-good-custom-delims",
+			inputs: map[string]interface{}{
+				"a": "Application: <<< first .Applications >>>, Profile: <<< first .Profiles >>>",
+			},
+			templateConfig: config.GoTemplate{LeftDelim: "<<<", RightDelim: ">>>"},
+			templatesData: map[string]interface{}{
+				"Applications": []string{"accounts", "application"},
+				"Profiles":     []string{"prod-uk", "prod", "base"},
+			},
 			expectation: map[string]interface{}{
 				"a": "Application: accounts, Profile: prod-uk",
 			},
@@ -66,15 +85,33 @@ func Test_resolvePlaceholders(t *testing.T) {
 			inputs: map[string]interface{}{
 				"a": "Application: {{ first .Applications }}, Profile: {{{ first .Profiles }}",
 			},
+			templatesData: map[string]interface{}{
+				"Applications": []string{"accounts", "application"},
+				"Profiles":     []string{"prod-uk", "prod", "base"},
+			},
 			expectation: map[string]interface{}{
 				"a": "",
 			},
 			expectedErrorMsg: "unexpected \"{\" in command",
 		},
 		{
+			name: "templates-bad-data",
+			inputs: map[string]interface{}{
+				"a": "Application: {{ first .Applications }}, Profile: {{ first .Profiles }}",
+			},
+			expectation: map[string]interface{}{
+				"a": "",
+			},
+			expectedErrorMsg: "at <first .Applications>: error calling first: runtime error",
+		},
+		{
 			name: "templates-bad",
 			inputs: map[string]interface{}{
 				"a": "Application: {{ first .Applications }}, Profile: {{ xxxx .Profiles }}",
+			},
+			templatesData: map[string]interface{}{
+				"Applications": []string{"accounts", "application"},
+				"Profiles":     []string{"prod-uk", "prod", "base"},
 			},
 			expectation: map[string]interface{}{
 				"a": "",
@@ -226,7 +263,12 @@ func Test_resolvePlaceholders(t *testing.T) {
 				e := deepCopyViaJSON(tt.inputs, newData)
 				assert.NoError(t, e)
 
-				rr := PropertiesResolver{data: newData}
+				rr := PropertiesResolver{
+					data:           newData,
+					templateConfig: tt.templateConfig.Validate(),
+					templatesData:  tt.templatesData,
+				}
+
 				result, e := rr.resolvePlaceholdersFromTop()
 
 				if tt.expectedErrorMsg != "" {
@@ -248,6 +290,9 @@ type placeholdersTest struct {
 	expectation      ResolvedConfigValues
 	expectedErrorMsg string
 	messages         []string
+
+	templateConfig config.GoTemplate
+	templatesData  map[string]interface{}
 }
 
 // Must deal with floats rather than ints if we're going to use this approach

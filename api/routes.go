@@ -217,7 +217,8 @@ func (rtr *Routing) newResolver() Resolvable {
 	if rtr.resolverGetter == nil {
 		rtr.resolverGetter = func() Resolvable {
 			return &Resolver{
-				enableTrace: rtr.AppConfig.Tracing.Enabled,
+				templateConfig: rtr.AppConfig.Gotemplate,
+				enableTrace:    rtr.AppConfig.Tracing.Enabled,
 			}
 		}
 	}

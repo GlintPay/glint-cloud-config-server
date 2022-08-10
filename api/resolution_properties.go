@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"github.com/GlintPay/gccs/config"
 	"github.com/Masterminds/sprig"
 	"github.com/rs/zerolog/log"
 	"regexp"
@@ -19,6 +20,9 @@ type PropertiesResolver struct {
 	data     ResolvedConfigValues
 	error    error
 	messages []string
+
+	templateConfig config.GoTemplate
+	templatesData  map[string]interface{}
 }
 
 var placeholderRegex = regexp.MustCompile(`\${([^}]*)}`)
@@ -46,30 +50,22 @@ func (pr *PropertiesResolver) resolvePlaceholders(currentMap map[string]interfac
 	return pr.data, pr.error
 }
 
-var Template = template.New("").
-	Funcs(sprig.TxtFuncMap())
+var sprigFuncs = sprig.TxtFuncMap()
 
 // TODO Should missing properties be a configurable fatal error?
 func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, propertyName string, value string, stack map[string]interface{}) string {
 	goTemplatesResult := value
 
 	// Look for possible Go templates
-	if strings.Contains(value, "{{") && strings.Contains(value, "}}") {
+	if strings.Contains(value, pr.templateConfig.LeftDelim) && strings.Contains(value, pr.templateConfig.RightDelim) {
 		var buf strings.Builder
-		tmpl, e := Template.Parse(value)
+		tmpl, e := template.New("").Funcs(sprigFuncs).Delims(pr.templateConfig.LeftDelim, pr.templateConfig.RightDelim).Parse(value)
 		if e != nil {
 			pr.error = e
 			return ""
 		}
 
-		tmpl.Delims("{{", "}}")
-
-		data := map[string]interface{}{
-			"Applications": []string{"accounts", "application"},
-			"Profiles":     []string{"prod-uk", "prod", "base"},
-		}
-
-		if err := tmpl.Execute(&buf, data); err != nil {
+		if e := tmpl.Execute(&buf, pr.templatesData); e != nil {
 			pr.error = e
 			return ""
 		}

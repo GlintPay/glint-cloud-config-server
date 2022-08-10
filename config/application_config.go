@@ -12,6 +12,7 @@ type ApplicationConfiguration struct {
 	Git        GitConfig
 	Defaults   Defaults
 	Tracing    Tracing
+	Gotemplate GoTemplate
 }
 
 type Defaults struct {
@@ -34,4 +35,19 @@ type Tracing struct {
 
 type Prometheus struct {
 	Path string
+}
+
+type GoTemplate struct {
+	LeftDelim  string
+	RightDelim string
+}
+
+func (t GoTemplate) Validate() GoTemplate {
+	if t.LeftDelim == "" {
+		t.LeftDelim = "{{"
+	}
+	if t.RightDelim == "" {
+		t.RightDelim = "}}"
+	}
+	return t
 }
