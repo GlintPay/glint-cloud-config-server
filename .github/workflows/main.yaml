@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: generic-runner
+    runs-on: go-service-runner
     if: github.ref == 'refs/heads/master'
 
     steps:
