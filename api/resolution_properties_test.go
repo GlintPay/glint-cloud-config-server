@@ -56,14 +56,14 @@ func Test_resolvePlaceholders(t *testing.T) {
 		{
 			name: "templates-good",
 			inputs: map[string]interface{}{
-				"a": "Application: {{ first .Applications }}, Profile: {{ first .Profiles }}",
+				"a": "Application: {{ first .Applications }}, Profile: {{ first .Profiles }}, Underscored: {{ dashToUnderscore (first .Profiles) }} ",
 			},
 			templatesData: map[string]interface{}{
 				"Applications": []string{"accounts", "application"},
 				"Profiles":     []string{"prod-uk", "prod", "base"},
 			},
 			expectation: map[string]interface{}{
-				"a": "Application: accounts, Profile: prod-uk",
+				"a": "Application: accounts, Profile: prod-uk, Underscored: prod_uk",
 			},
 		},
 		{

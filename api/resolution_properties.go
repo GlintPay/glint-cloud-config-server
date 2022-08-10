@@ -52,6 +52,12 @@ func (pr *PropertiesResolver) resolvePlaceholders(currentMap map[string]interfac
 
 var sprigFuncs = sprig.TxtFuncMap()
 
+var customFuncs = template.FuncMap{
+	"dashToUnderscore": func(value string) string {
+		return strings.ReplaceAll(value, "-", "_")
+	},
+}
+
 // TODO Should missing properties be a configurable fatal error?
 func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, propertyName string, value string, stack map[string]interface{}) string {
 	goTemplatesResult := value
@@ -59,7 +65,7 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, p
 	// Look for possible Go templates
 	if strings.Contains(value, pr.templateConfig.LeftDelim) && strings.Contains(value, pr.templateConfig.RightDelim) {
 		var buf strings.Builder
-		tmpl, e := template.New("").Funcs(sprigFuncs).Delims(pr.templateConfig.LeftDelim, pr.templateConfig.RightDelim).Parse(value)
+		tmpl, e := template.New("").Funcs(sprigFuncs).Funcs(customFuncs).Delims(pr.templateConfig.LeftDelim, pr.templateConfig.RightDelim).Parse(value)
 		if e != nil {
 			pr.error = e
 			return ""
