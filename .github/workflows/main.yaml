@@ -19,9 +19,11 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
+      - name: Set Go bin path
+        run: echo "/usr/local/go/bin" >> $GITHUB_PATH
+
       - name: Run tests
-        run: |
-          make test-with-coverage
+        run: make test-with-coverage
 
       - name: Build and upload image
         run: |
