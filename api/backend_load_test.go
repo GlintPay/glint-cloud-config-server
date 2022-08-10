@@ -7,6 +7,7 @@ import (
 	"github.com/GlintPay/gccs/backend/git"
 	"github.com/GlintPay/gccs/config"
 	goGit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
@@ -534,13 +535,20 @@ func TestLoadConfigurationWithEmptyFileDir(t *testing.T) {
 	}, got)
 }
 
+var sig = &object.Signature{
+	Name:  "A",
+	Email: "a@b.com",
+}
+
 func _writeGitFile(t *testing.T, gitDir string, wt *goGit.Worktree, filename string, contents string) {
 	err := os.WriteFile(filepath.Join(gitDir, filename), []byte(contents), 0644)
 	assert.NoError(t, err)
 
 	_, err = wt.Add(filename)
 	assert.NoError(t, err)
-	_, err = wt.Commit("", &goGit.CommitOptions{})
+	_, err = wt.Commit("", &goGit.CommitOptions{
+		Author: sig,
+	})
 	assert.NoError(t, err)
 }
 
