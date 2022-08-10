@@ -2,9 +2,11 @@ package api
 
 import (
 	"fmt"
+	"github.com/Masterminds/sprig"
 	"github.com/rs/zerolog/log"
 	"regexp"
 	"strings"
+	"text/template"
 )
 
 const UnresolvedPropertyResult = ""
@@ -44,9 +46,42 @@ func (pr *PropertiesResolver) resolvePlaceholders(currentMap map[string]interfac
 	return pr.data, pr.error
 }
 
+var Template = template.New("").
+	Funcs(sprig.TxtFuncMap())
+
 // TODO Should missing properties be a configurable fatal error?
 func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, propertyName string, value string, stack map[string]interface{}) string {
-	return placeholderRegex.ReplaceAllStringFunc(value, func(foundMatch string) string {
+	goTemplatesResult := value
+
+	// Look for possible Go templates
+	if strings.Contains(value, "{{") && strings.Contains(value, "}}") {
+		var buf strings.Builder
+		tmpl, e := Template.Parse(value)
+		if e != nil {
+			pr.error = e
+			return ""
+		}
+
+		tmpl.Delims("{{", "}}")
+
+		data := map[string]interface{}{
+			"Applications": []string{"accounts", "application"},
+			"Profiles":     []string{"prod-uk", "prod", "base"},
+		}
+
+		if err := tmpl.Execute(&buf, data); err != nil {
+			pr.error = e
+			return ""
+		}
+
+		goTemplatesResult = buf.String()
+	}
+
+	if pr.error != nil {
+		return ""
+	}
+
+	propertiesResult := placeholderRegex.ReplaceAllStringFunc(goTemplatesResult, func(foundMatch string) string {
 		sourcePropertyWithDefault := pr.getPropertyClauseFromMatch(foundMatch)
 		if sourcePropertyWithDefault[0] == "" {
 			// ${} is not acceptable
@@ -96,6 +131,8 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, p
 
 		return UnresolvedPropertyResult
 	})
+
+	return propertiesResult
 }
 
 func (pr *PropertiesResolver) resolvePropertyName(name string) (interface{}, bool) {

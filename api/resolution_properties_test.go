@@ -53,6 +53,35 @@ func Test_resolvePlaceholders(t *testing.T) {
 			},
 		},
 		{
+			name: "templates-good",
+			inputs: map[string]interface{}{
+				"a": "Application: {{ first .Applications }}, Profile: {{ first .Profiles }}",
+			},
+			expectation: map[string]interface{}{
+				"a": "Application: accounts, Profile: prod-uk",
+			},
+		},
+		{
+			name: "templates-malformed-1",
+			inputs: map[string]interface{}{
+				"a": "Application: {{ first .Applications }}, Profile: {{{ first .Profiles }}",
+			},
+			expectation: map[string]interface{}{
+				"a": "",
+			},
+			expectedErrorMsg: "unexpected \"{\" in command",
+		},
+		{
+			name: "templates-bad",
+			inputs: map[string]interface{}{
+				"a": "Application: {{ first .Applications }}, Profile: {{ xxxx .Profiles }}",
+			},
+			expectation: map[string]interface{}{
+				"a": "",
+			},
+			expectedErrorMsg: "function \"xxxx\" not defined",
+		},
+		{
 			name: "maps",
 			inputs: map[string]interface{}{
 				"vals.w": "w",
