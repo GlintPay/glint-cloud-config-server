@@ -6,7 +6,6 @@ import (
 	"github.com/GlintPay/gccs/utils"
 	"github.com/rs/zerolog/log"
 	"reflect"
-	"regexp"
 	"sort"
 	"strings"
 )
@@ -20,8 +19,6 @@ type Resolver struct {
 	pointlessOverrides       []duplicate
 	propertiesResolverGetter func(ResolvedConfigValues) PropertiesResolvable
 }
-
-var placeholderRegex = regexp.MustCompile(`\${([^}]*)}`)
 
 func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []string, profileNames []string, injections InjectedProperties, rawSource *Source) (ResolvedConfigValues, ResolutionMetadata, error) {
 	if f.enableTrace {

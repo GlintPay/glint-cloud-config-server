@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"github.com/rs/zerolog/log"
+	"regexp"
 	"strings"
 )
 
@@ -17,6 +18,8 @@ type PropertiesResolver struct {
 	error    error
 	messages []string
 }
+
+var placeholderRegex = regexp.MustCompile(`\${([^}]*)}`)
 
 func (pr *PropertiesResolver) resolvePlaceholdersFromTop() (ResolvedConfigValues, error) {
 	return pr.resolvePlaceholders(pr.data)
