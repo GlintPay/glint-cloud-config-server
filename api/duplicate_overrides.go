@@ -10,5 +10,5 @@ type duplicate struct {
 }
 
 func (d duplicate) String() string {
-	return fmt.Sprintf("%s: %s (%s);", d.key, d.value, d.source)
+	return fmt.Sprintf("%s: %v (%s);", d.key, d.value, d.source)
 }
