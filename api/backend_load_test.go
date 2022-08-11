@@ -535,6 +535,36 @@ func TestLoadConfigurationWithEmptyFileDir(t *testing.T) {
 	}, got)
 }
 
+func TestLoadConfigurationWithEmptyFileDirAndNoSpecifiedApplicationsOrProfiles(t *testing.T) {
+
+	fileDir, err := os.MkdirTemp("", "*")
+	assert.NoError(t, err)
+
+	var backends backend.Backends
+	backends = append(backends, &file.Backend{
+		Config: config.FileConfig{
+			Path: fileDir,
+		},
+	})
+
+	req := ConfigurationRequest{
+		Applications:   []string{},
+		Profiles:       []string{},
+		RefreshBackend: false,
+	}
+
+	ctxt := context.Background()
+
+	got, err := LoadConfigurations(ctxt, backends, req)
+	assert.NoError(t, err)
+	assert.Equal(t, &Source{
+		Name:            "",
+		Profiles:        []string{},
+		Version:         "",
+		PropertySources: []PropertySource{},
+	}, got)
+}
+
 var sig = &object.Signature{
 	Name:  "A",
 	Email: "a@b.com",

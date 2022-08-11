@@ -33,10 +33,7 @@ func marshalTo(source map[string]interface{}, outputStruct interface{}) error {
 	}
 
 	config := &mapstructure.DecoderConfig{Metadata: nil, ZeroFields: true, TagName: "from", Result: outputStruct}
-	decoder, err := mapstructure.NewDecoder(config)
-	if err != nil {
-		return err
-	}
+	decoder, _ := mapstructure.NewDecoder(config)
 
 	return decoder.Decode(source)
 }
