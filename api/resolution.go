@@ -16,6 +16,7 @@ type Resolvable interface {
 }
 
 type Resolver struct {
+	flattenedStructure       bool
 	templateConfig           config.GoTemplate
 	enableTrace              bool
 	pointlessOverrides       []duplicate

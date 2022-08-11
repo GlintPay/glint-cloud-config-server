@@ -37,7 +37,7 @@ func Test_reconcileProperties(t *testing.T) {
 		resolved)
 }
 
-func Test_reconcileProperties_ListsReplacedNotMerged(t *testing.T) {
+func Test_reconcileProperties_ListsReplacedNotMerged_Hier(t *testing.T) {
 	ctxt := context.Background()
 
 	tests := []SourcesRequest{
@@ -79,6 +79,55 @@ func Test_reconcileProperties_ListsReplacedNotMerged(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := Resolver{}
+			resolved, _, e := resolver.ReconcileProperties(ctxt, []string{"myapp"}, []string{"production", "mine"}, InjectedProperties{}, &Source{Name: "test-app", PropertySources: tt.sources})
+
+			assert.NoError(t, e)
+			assert.Equal(t, tt.expectation, resolved)
+		})
+	}
+}
+func Test_reconcileProperties_ListsReplacedNotMerged_Flattened(t *testing.T) {
+	ctxt := context.Background()
+
+	tests := []SourcesRequest{
+		{
+			name: "three-level",
+			sources: []PropertySource{
+				{Name: "/application.yml", Source: map[string]interface{}{"list[0]": "a", "list[1]": "b", "list[2]": "c"}},
+				{Name: "/myapp-mine.yml", Source: map[string]interface{}{"list[0]": "y", "cc[0]": "eur"}},
+				{Name: "/myapp.yml", Source: map[string]interface{}{"list[0]": "d", "list[1]": "x", "cc[0]": "usd"}},
+			},
+			expectation: ResolvedConfigValues{"list[0]": "y", "cc[0]": "eur"},
+		},
+		{
+			name: "longer",
+			sources: []PropertySource{
+				{Name: "/application.yml", Source: map[string]interface{}{"xx.list[0]": "xxx", "list[0]": "a", "list[1]": "b", "list[2]": "c"}},
+				{Name: "/myapp-mine.yml", Source: map[string]interface{}{"list[0]": "y", "list[1]": "1", "list[2]": "2", "list[3]": "3", "list[4]": "4"}},
+			},
+			expectation: ResolvedConfigValues{"list[0]": "y", "list[1]": "1", "list[2]": "2", "list[3]": "3", "list[4]": "4", "xx.list[0]": "xxx"},
+		},
+		{
+			name: "longer-2",
+			sources: []PropertySource{
+				{Name: "/application.yml", Source: map[string]interface{}{"list[0]": 1}},
+				{Name: "/myapp-mine.yml", Source: map[string]interface{}{"list[0]": "y", "list[1]": "1", "list[2]": "2", "list[3]": "3", "list[4]": "4"}},
+			},
+			expectation: ResolvedConfigValues{"list[0]": "y", "list[1]": "1", "list[2]": "2", "list[3]": "3", "list[4]": "4"},
+		},
+		{
+			name: "shorter",
+			sources: []PropertySource{
+				{Name: "/application.yml", Source: map[string]interface{}{"list[0]": "a", "list[1]": "b", "list[2]": "c"}},
+				{Name: "/myapp-mine.yml", Source: map[string]interface{}{"list[0]": "x"}},
+			},
+			expectation: ResolvedConfigValues{"list[0]": "x"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resolver := Resolver{flattenedStructure: true}
 			resolved, _, e := resolver.ReconcileProperties(ctxt, []string{"myapp"}, []string{"production", "mine"}, InjectedProperties{}, &Source{Name: "test-app", PropertySources: tt.sources})
 
 			assert.NoError(t, e)
