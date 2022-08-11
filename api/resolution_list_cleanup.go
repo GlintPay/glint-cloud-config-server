@@ -44,7 +44,7 @@ func findFlattenedLists(source map[string]interface{}) map[string]interface{} {
 	var listNames = make(map[string]interface{})
 
 	// Grab list names
-	for propertyName, _ := range source {
+	for propertyName := range source {
 		// Handle sublists recursively
 		//switch valueType := value.(type) {
 		//case map[string]interface{}:
