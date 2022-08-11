@@ -1,6 +1,7 @@
 package config
 
 type FileConfig struct {
-	Order int
-	Path  string
+	Disabled bool
+	Order    int
+	Path     string
 }

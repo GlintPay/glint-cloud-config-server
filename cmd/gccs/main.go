@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/GlintPay/gccs/api"
 	"github.com/GlintPay/gccs/backend"
-	"github.com/GlintPay/gccs/backend/git"
+	"github.com/GlintPay/gccs/backend/setup"
 	"github.com/GlintPay/gccs/config"
 	"github.com/GlintPay/gccs/health"
 	"github.com/GlintPay/gccs/logging"
@@ -46,13 +46,9 @@ func main() {
 
 	////////////////////////////////////////////
 
-	var backends backend.Backends
-	backends = append(backends, &git.Backend{EnableTrace: appConfig.Tracing.Enabled}) // just one for now!
-
-	for _, each := range backends {
-		if backendErr := each.Init(ctx, appConfig); backendErr != nil {
-			log.Fatal().Stack().Err(backendErr).Msg("Backend init failed")
-		}
+	backends, backendErr := setup.Init(ctx, appConfig)
+	if backendErr != nil {
+		log.Fatal().Stack().Err(backendErr).Msg("Backend init failed")
 	}
 
 	////////////////////////////////////////////

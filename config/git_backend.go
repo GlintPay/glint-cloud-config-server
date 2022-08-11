@@ -1,7 +1,8 @@
 package config
 
 type GitConfig struct {
-	Order int
+	Disabled bool
+	Order    int
 
 	Uri            string
 	KnownHostsFile string `json:"knownHostsFile"`
