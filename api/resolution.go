@@ -45,8 +45,18 @@ func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []
 
 	sourceNames := getPropertySourceNames(rawSource.PropertySources)
 
-	for _, ps := range rawSource.PropertySources {
+	var listsToRemove []map[string]interface{}
+	if f.flattenedStructure {
+		listsToRemove = findCompletelyReplacedFlattenedLists(rawSource.PropertySources)
+	}
+
+	for i, ps := range rawSource.PropertySources {
 		for k, v := range ps.Source {
+
+			if f.flattenedStructure && shouldSkipCompletelyReplacedFlattenedList(ps.Name, listsToRemove[i], k) {
+				continue
+			}
+
 			f.overrideValue(reconciled, k, v, ps.Name)
 		}
 	}

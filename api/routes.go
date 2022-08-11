@@ -62,7 +62,7 @@ func (rtr *Routing) propertySourcesHandler() http.HandlerFunc {
 
 		resolveVal := overrideBooleanDefault(queries.Get("resolve"), rtr.AppConfig.Defaults.ResolvePropertySources)
 		if resolveVal {
-			resolver := rtr.newResolver()
+			resolver := rtr.newResolver(req)
 			values, metadata, e := resolver.ReconcileProperties(r.Context(), req.Applications, req.Profiles, InjectedProperties{}, source)
 			if e != nil {
 				rtr.writeError(w, e)
@@ -111,7 +111,7 @@ func (rtr *Routing) propertySourcesHandlerWithInjections() http.HandlerFunc {
 				}
 			}
 
-			resolver := rtr.newResolver()
+			resolver := rtr.newResolver(req)
 			values, metadata, e := resolver.ReconcileProperties(r.Context(), req.Applications, req.Profiles, injected, source)
 			if e != nil {
 				rtr.writeError(w, e)
@@ -213,12 +213,13 @@ func (rtr *Routing) enableOTelForRouter(r chi.Router) error {
 	return nil
 }
 
-func (rtr *Routing) newResolver() Resolvable {
+func (rtr *Routing) newResolver(req ConfigurationRequest) Resolvable {
 	if rtr.resolverGetter == nil {
 		rtr.resolverGetter = func() Resolvable {
 			return &Resolver{
-				templateConfig: rtr.AppConfig.Gotemplate,
-				enableTrace:    rtr.AppConfig.Tracing.Enabled,
+				flattenedStructure: req.FlattenedIndexedLists,
+				templateConfig:     rtr.AppConfig.Gotemplate,
+				enableTrace:        rtr.AppConfig.Tracing.Enabled,
 			}
 		}
 	}
