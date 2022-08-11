@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/caarlos0/env/v6 v6.9.3
+	github.com/emirpasic/gods v1.18.1
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/heptiolabs/healthcheck v0.0.0-20180807145615-6ff867650f40
@@ -33,7 +34,6 @@ require (
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/felixge/httpsnoop v1.0.2 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
