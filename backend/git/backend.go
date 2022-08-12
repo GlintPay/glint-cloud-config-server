@@ -48,6 +48,13 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 }
 
 func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting bool) error {
+	//s.fetchLock.Lock()
+	//defer s.fetchLock.Unlock()
+	return s.connectWithLock(ctxt, branch, cleanExisting)
+}
+
+func (s *Backend) connectWithLock(ctxt context.Context, branch string, cleanExisting bool) error {
+
 	if cleanExisting {
 		if e := s.cleanRepo(); e != nil {
 			return e
@@ -102,7 +109,11 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 			log.Debug().Msgf("Checked out local [%s] OK", branch)
 		} else {
 			mirrorRemoteBranchRefSpec := fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch)
-			if err = s.fetchOrigin(repo, mirrorRemoteBranchRefSpec); err != nil {
+			err = s.fetchOrigin(repo, mirrorRemoteBranchRefSpec)
+			if err == transport.ErrEmptyUploadPackRequest {
+				log.Error().Err(err).Msgf("Fetch error, doing a clean retry...")
+				return s.connectWithLock(ctxt, branch, true)
+			} else if err != nil {
 				return err
 			}
 
@@ -122,7 +133,12 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 		po := s.getPullOptions(ref)
 		err = w.Pull(po)
 		if err != nil && err != goGit.NoErrAlreadyUpToDate {
-			return err
+			if err == plumbing.ErrReferenceNotFound {
+				log.Error().Err(err).Msgf("Pull error, doing a clean retry...")
+				return s.connectWithLock(ctxt, branch, true)
+			}
+
+			return fmt.Errorf("pull error: %s", err.Error())
 		}
 
 		if s.Config.ForcePull {
