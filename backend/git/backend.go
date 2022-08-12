@@ -7,11 +7,14 @@ import (
 	"github.com/GlintPay/gccs/config"
 	"github.com/GlintPay/gccs/filetypes"
 	gotel "github.com/GlintPay/gccs/otel"
+	"github.com/go-git/go-billy/v5/memfs"
 	goGit "github.com/go-git/go-git/v5"
 	goGitConfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/rs/zerolog/log"
 	"io"
 	"os"
@@ -54,7 +57,17 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 		}
 	}
 
-	repo, err := goGit.PlainOpen(s.Config.Basedir)
+	var repo *goGit.Repository
+	var err error
+
+	isFileBased := s.Config.Basedir != ""
+	if isFileBased {
+		repo, err = goGit.PlainOpen(s.Config.Basedir)
+	} else if s.Repo != nil {
+		repo = s.Repo
+	} else {
+		err = goGit.ErrRepositoryNotExists
+	}
 
 	if branch == "" {
 		branch = s.Config.DefaultBranchName
@@ -76,12 +89,22 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 		}
 
 		cloneOpts := s.getCloneOptions(ref, depth)
-		repo, err = goGit.PlainCloneContext(ctxt, s.Config.Basedir, false, cloneOpts)
+
+		if isFileBased {
+			repo, err = goGit.PlainCloneContext(ctxt, s.Config.Basedir, false, cloneOpts)
+		} else {
+			repo, err = goGit.CloneContext(ctxt, memory.NewStorage(), memfs.New(), cloneOpts)
+		}
 		if err != nil {
 			return err
 		}
 
-		log.Debug().Msgf("Cloned [%s] OK", branch)
+		if isFileBased {
+			log.Debug().Msgf("Cloned [%s] to disk OK", branch)
+		} else {
+			log.Debug().Msgf("Cloned [%s] in-memory OK", branch)
+		}
+
 	} else if err != nil {
 		return err
 	} else {
