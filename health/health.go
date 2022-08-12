@@ -13,7 +13,6 @@ import (
 //
 // Liveness and Readiness endpoints will return 200 / OK out of the box to represent broad application health
 // They will start to return 5xx only if new healthchecks are added and only if those start to error
-//
 func New(opts ...Opt) *Healthchecks {
 	facade := &Healthchecks{handler: healthcheck.NewHandler()}
 

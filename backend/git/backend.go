@@ -48,12 +48,9 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 }
 
 func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting bool) error {
-	if s.Config.Basedir != "" && cleanExisting {
-		log.Debug().Msg("Cleaning existing...")
-
-		err := os.RemoveAll(s.Config.Basedir)
-		if err != nil {
-			return err
+	if cleanExisting {
+		if e := s.cleanRepo(); e != nil {
+			return e
 		}
 	}
 
@@ -105,7 +102,7 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 			log.Debug().Msgf("Checked out local [%s] OK", branch)
 		} else {
 			mirrorRemoteBranchRefSpec := fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch)
-			if err = fetchOrigin(repo, s.PublicKeys, mirrorRemoteBranchRefSpec); err != nil {
+			if err = s.fetchOrigin(repo, mirrorRemoteBranchRefSpec); err != nil {
 				return err
 			}
 
@@ -204,6 +201,14 @@ func (s *Backend) fetchOrigin(repo *goGit.Repository, refSpecStr string) error {
 	}
 
 	return nil
+}
+
+func (s *Backend) cleanRepo() error {
+	if s.Config.Basedir == "" {
+		return nil
+	}
+	log.Debug().Msg("Cleaning existing...")
+	return os.RemoveAll(s.Config.Basedir)
 }
 
 func (s *Backend) GetCurrentState(ctxt context.Context, branch string, refresh bool) (*backend.State, error) {
