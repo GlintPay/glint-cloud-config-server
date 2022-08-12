@@ -176,7 +176,7 @@ func (s *Backend) getPullOptions(ref plumbing.ReferenceName) *goGit.PullOptions 
 }
 
 // Borrowed from https://github.com/go-git/go-git/pull/446/files/62e512f0805303f9c245890bf2599295fc0f9774#diff-15808dd1f39f7d3198c9803a02fc1222b866ad5705b5aea887bb6a89ad572223
-func fetchOrigin(repo *goGit.Repository, publicKeys *ssh.PublicKeys, refSpecStr string) error {
+func (s *Backend) fetchOrigin(repo *goGit.Repository, refSpecStr string) error {
 	remote, err := repo.Remote("origin")
 	if err != nil {
 		return err
@@ -191,8 +191,8 @@ func fetchOrigin(repo *goGit.Repository, publicKeys *ssh.PublicKeys, refSpecStr 
 		RefSpecs: refSpecs,
 	}
 
-	if publicKeys != nil {
-		fo.Auth = publicKeys
+	if s.PublicKeys != nil {
+		fo.Auth = s.PublicKeys
 	}
 
 	if err = remote.Fetch(fo); err != nil {
