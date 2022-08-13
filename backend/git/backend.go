@@ -188,6 +188,9 @@ func (s *Backend) fetchOrigin(repo *goGit.Repository, refSpecStr string) error {
 		RefSpecs: refSpecs,
 	}
 
+	if s.Config.ShowProgress {
+		fo.Progress = os.Stdout
+	}
 	if s.PublicKeys != nil {
 		fo.Auth = s.PublicKeys
 	}
