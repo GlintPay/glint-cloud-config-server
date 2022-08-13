@@ -90,28 +90,11 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 			return err
 		}
 
-		coOpts := &goGit.CheckoutOptions{
-			Branch: ref,
-			Create: false,
-			Force:  false,
-			Keep:   false,
-		}
-
-		err = w.Checkout(coOpts)
-		if err == nil {
-			log.Debug().Msgf("Checked out local [%s] OK", branch)
-		} else {
-			mirrorRemoteBranchRefSpec := fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch)
-			if err = s.fetchOrigin(repo, mirrorRemoteBranchRefSpec); err != nil {
+		head, err := repo.Head()
+		if err == nil && head.Name() != ref {
+			if err = s.checkout(ctxt, repo, w, branch, ref); err != nil {
 				return err
 			}
-
-			if err = w.Checkout(coOpts); err != nil {
-				return err
-			}
-
-			log.Debug().Msgf("Checked out remote [%s] OK", branch)
-			return nil
 		}
 
 		if s.EnableTrace {
@@ -170,6 +153,33 @@ func (s *Backend) getPullOptions(ref plumbing.ReferenceName) *goGit.PullOptions 
 	}
 
 	return po
+}
+
+func (s *Backend) checkout(_ context.Context, repo *goGit.Repository, w *goGit.Worktree, branch string, ref plumbing.ReferenceName) error {
+	coOpts := &goGit.CheckoutOptions{
+		Branch: ref,
+		Create: false,
+		Force:  false,
+		Keep:   false,
+	}
+
+	err := w.Checkout(coOpts)
+	if err == nil {
+		log.Debug().Msgf("Checked out local [%s] OK", branch)
+		return nil
+	}
+
+	mirrorRemoteBranchRefSpec := fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch)
+	if err = s.fetchOrigin(repo, mirrorRemoteBranchRefSpec); err != nil {
+		return err
+	}
+
+	if err = w.Checkout(coOpts); err != nil {
+		return err
+	}
+
+	log.Debug().Msgf("Checked out remote [%s] OK", branch)
+	return nil
 }
 
 // Borrowed from https://github.com/go-git/go-git/pull/446/files/62e512f0805303f9c245890bf2599295fc0f9774#diff-15808dd1f39f7d3198c9803a02fc1222b866ad5705b5aea887bb6a89ad572223
