@@ -11,6 +11,7 @@ import (
 	goGitConfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/rs/zerolog/log"
 	"io"
@@ -48,8 +49,8 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 }
 
 func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting bool) error {
-	//s.fetchLock.Lock()
-	//defer s.fetchLock.Unlock()
+	s.fetchLock.Lock()
+	defer s.fetchLock.Unlock()
 	return s.connectWithLock(ctxt, branch, cleanExisting)
 }
 
