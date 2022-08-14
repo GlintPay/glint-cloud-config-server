@@ -257,6 +257,10 @@ func (s *Backend) GetCurrentState(ctxt context.Context, branch string, refresh b
 		return nil, err
 	}
 
+	// Prevent `concurrent map writes` at `github.com/go-git/go-git/v5/plumbing/format/idxfile.(*MemoryIndex).genOffsetHash(0xc000262000)`
+	s.commitsLock.Lock()
+	defer s.commitsLock.Unlock()
+
 	commit, err := s.Repo.CommitObject(ref.Hash())
 	if err != nil {
 		return nil, err
