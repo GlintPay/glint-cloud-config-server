@@ -12,11 +12,13 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/procyon-projects/chrono"
 	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfiguration) error {
@@ -41,6 +43,23 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 
 		if e := s.connect(ctxt, "", !s.Config.DisableBaseDirCleaning); e != nil {
 			return e
+		}
+	}
+
+	if s.Config.RefreshRateMillis > 0 {
+		scheduler := chrono.NewDefaultTaskScheduler()
+
+		period := time.Duration(s.Config.RefreshRateMillis) * time.Millisecond
+		log.Info().Msgf("Scheduling pull every %v", period)
+
+		_, err := scheduler.ScheduleAtFixedRate(func(ctx context.Context) {
+			if e := s.connect(ctxt, "", false); e != nil {
+				log.Error().Err(e).Msgf("Connect failed")
+			}
+		}, period)
+
+		if err != nil {
+			return err
 		}
 	}
 
@@ -97,21 +116,23 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 			}
 		}
 
-		if s.EnableTrace {
-			_, span := gotel.GetTracer(ctxt).Start(ctxt, "git-pull", gotel.ServerOptions)
-			defer span.End()
-		}
+		if s.Config.RefreshRateMillis <= 0 {
+			if s.EnableTrace {
+				_, span := gotel.GetTracer(ctxt).Start(ctxt, "git-pull", gotel.ServerOptions)
+				defer span.End()
+			}
 
-		po := s.getPullOptions(ref)
-		err = w.Pull(po)
-		if err != nil && err != goGit.NoErrAlreadyUpToDate {
-			return err
-		}
+			po := s.getPullOptions(ref)
+			err = w.Pull(po)
+			if err != nil && err != goGit.NoErrAlreadyUpToDate {
+				return err
+			}
 
-		if s.Config.ForcePull {
-			log.Debug().Msgf("Pulled OK (with force)")
-		} else {
-			log.Debug().Msgf("Pulled OK")
+			if s.Config.ForcePull {
+				log.Debug().Msgf("Pulled OK (with force)")
+			} else {
+				log.Debug().Msgf("Pulled OK")
+			}
 		}
 	}
 
