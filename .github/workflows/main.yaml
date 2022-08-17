@@ -39,3 +39,6 @@ jobs:
           token: ${{ secrets.GLINT_PRIVATE_ACCESS_SECRET }}
           event-type: new-image
           client-payload: '{"run_number": "${{ github.run_number }}", "run_id": "${{ github.run_id }}", "sha": "${{ github.sha }}"}'
+
+      - name: Upload coverage reports to Codecov with GitHub Action
+        uses: codecov/codecov-action@v3
