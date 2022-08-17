@@ -159,6 +159,8 @@ func setupRouter(config config.ApplicationConfiguration, backends backend.Backen
 	router.Route("/", func(r chi.Router) {
 		r.Use(httplog.Handler(log.Logger))
 		r.Use(middleware.RequestID)
+		r.Use(middleware.Compress(5))
+
 		if e := routing.SetupFunctionalRoutes(r); e != nil {
 			log.Fatal().Stack().Err(e).Msg("route setup failed")
 		}
