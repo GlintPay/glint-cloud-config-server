@@ -278,7 +278,7 @@ X-Resolution-Version: 281cd74427f6c5b87d7f8ff109a1e4e678b1b7cf
   [... json ...]
 ```
 
-This can be combined with flattening. If flattening is disabled, a single hierarchical structure is resturned.
+This can be combined with flattening. If flattening is disabled, a single hierarchical structure is returned.
 
 
 ----
