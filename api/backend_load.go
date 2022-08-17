@@ -38,7 +38,7 @@ func LoadConfigurations(ctxt context.Context, s backend.Backends, req Configurat
 }
 
 func loadConfiguration(ctxt context.Context, s backend.Backend, req ConfigurationRequest, source *Source) error {
-	log.Debug().Msgf("Requesting: %s/%s/[%s]", req.Applications, req.Profiles, req.Labels)
+	// log.Debug().Msgf("Requesting: %s/%s/[%s]", req.Applications, req.Profiles, req.Labels)
 
 	if req.EnableTrace {
 		_, span := gotel.GetTracer(ctxt).Start(ctxt, "loadConfiguration", gotel.ServerOptions)

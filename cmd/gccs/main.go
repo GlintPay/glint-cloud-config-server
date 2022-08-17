@@ -13,6 +13,7 @@ import (
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httplog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
@@ -156,6 +157,8 @@ func setupRouter(config config.ApplicationConfiguration, backends backend.Backen
 	}
 
 	router.Route("/", func(r chi.Router) {
+		r.Use(httplog.Handler(log.Logger))
+		r.Use(middleware.RequestID)
 		if e := routing.SetupFunctionalRoutes(r); e != nil {
 			log.Fatal().Stack().Err(e).Msg("route setup failed")
 		}
