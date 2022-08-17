@@ -14,7 +14,7 @@ func flattenRecursive(m map[string]interface{}, ks []string, cb func([]string, i
 		newks := append(ks, k) //nolint:gocritic
 		if newm, ok := v.(map[string]interface{}); ok {
 
-			// Method borrowed from https://github.com/wolfeidau/unflatten/blob/master/unflatten.go with this clause added
+			// Method borrowed from https://github.com/wolfeidau/unflatten/blob/master/flatten.go with this clause added
 			// to handle empty map values
 			if len(newm) == 0 {
 				cb(newks, v)
