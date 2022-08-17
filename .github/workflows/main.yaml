@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: go-service-runner
+    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
 
     steps:

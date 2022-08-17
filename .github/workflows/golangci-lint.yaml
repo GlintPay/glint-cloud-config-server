@@ -4,7 +4,7 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   lint:
-    runs-on: go-service-runner
+    runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
