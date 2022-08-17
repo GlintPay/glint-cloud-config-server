@@ -2,6 +2,8 @@
 
 ![Build, deploy status](https://github.com/GlintPay/glint-cloud-config-server/actions/workflows/main.yaml/badge.svg)
 
+[![codecov](https://codecov.io/gh/GlintPay/glint-cloud-config-server/branch/master/graph/badge.svg?token=PBV9Z53I17)](https://codecov.io/gh/GlintPay/glint-cloud-config-server)
+
 This is a Golang implementation of the [Spring Cloud Config Server](https://docs.spring.io/spring-cloud-config/docs/current/reference/html/#_spring_cloud_config_server), an HTTP resource-based API for external configuration. We have used this in Docker form via https://github.com/hyness/spring-cloud-config-server for over a year with no problems.
 
 The aims for our project are:
