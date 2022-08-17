@@ -18,7 +18,7 @@ The aims for our project are:
 
     docker pull glintpay/glint-cloud-config-server
 
-[Docker Hub](https://hub.docker.com/repository/docker/glintpay/glint-cloud-config-server)
+[Docker Hub](https://hub.docker.com/r/glintpay/glint-cloud-config-server)
 
 ### Docker run:
 
