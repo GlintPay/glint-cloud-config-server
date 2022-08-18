@@ -223,11 +223,38 @@ func Test_resolvePlaceholders(t *testing.T) {
 					"${}",
 					"c",
 				},
+				"otherVals": []interface{}{
+					map[string]interface{}{
+						"new-a": "${a}",
+						"new-b": "${b}",
+						"new-c": "${c:3}",
+						"new-d": "${d}",
+						"new-e": "e",
+					},
+				},
+				"otherVals2": []interface{}{
+					1, 2, 3, 3.1415927,
+				},
 			},
 			expectation: map[string]interface{}{
 				"a": 1.0,
 				"b": 2.0,
-				"vals": []string{
+				"otherVals": []interface{}{
+					map[string]interface{}{
+						"new-a": "1",
+						"new-b": "2",
+						"new-c": "3",
+						"new-d": "",
+						"new-e": "e",
+					},
+				},
+				"otherVals2": []interface{}{
+					"1",
+					"2",
+					"3",
+					"3.1415927",
+				},
+				"vals": []interface{}{
 					"w",
 					"1",
 					"2",
@@ -238,6 +265,7 @@ func Test_resolvePlaceholders(t *testing.T) {
 				},
 			},
 			messages: []string{
+				"Missing value for property [d]",
 				"Missing value for property [d]",
 				"Missing placeholder [${}] for property [vals]",
 			},

@@ -37,10 +37,19 @@ func (pr *PropertiesResolver) resolvePlaceholders(currentMap map[string]interfac
 		case map[string]interface{}:
 			_, _ = pr.resolvePlaceholders(typedVal)
 		case []interface{}:
-			resolved := make([]string, len(typedVal))
+			resolved := make([]interface{}, len(typedVal))
 			stack := newStack()
 			for i, eachUnresolved := range typedVal {
-				resolved[i] = pr.resolveString(currentMap, propertyName, eachUnresolved.(string), stack)
+				switch typed := eachUnresolved.(type) {
+				case string:
+					resolved[i] = pr.resolveString(currentMap, propertyName, typed, stack)
+				case map[string]interface{}:
+					_, _ = pr.resolvePlaceholders(typed) // ignore results
+					resolved[i] = typed
+				default:
+					stringVal := fmt.Sprintf("%v", eachUnresolved)
+					resolved[i] = pr.resolveString(currentMap, propertyName, stringVal, stack)
+				}
 			}
 			currentMap[propertyName] = resolved // replace the whole thing
 		case string:
