@@ -14,7 +14,7 @@ require (
 	github.com/procyon-projects/chrono v1.1.0
 	github.com/prometheus/client_golang v1.12.2
 	github.com/riandyrn/otelchi v0.5.0
-	github.com/rs/zerolog v1.28.0
+	github.com/rs/zerolog v1.29.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/stretchr/testify v1.8.1
 	github.com/wolfeidau/unflatten v1.1.0
