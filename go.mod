@@ -4,16 +4,16 @@ go 1.19
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
-	github.com/caarlos0/env/v6 v6.9.3
+	github.com/caarlos0/env/v6 v6.10.1
 	github.com/emirpasic/gods v1.18.1
-	github.com/go-chi/chi/v5 v5.0.7
+	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/httplog v0.2.5
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/heptiolabs/healthcheck v0.0.0-20180807145615-6ff867650f40
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/procyon-projects/chrono v1.1.0
 	github.com/prometheus/client_golang v1.12.2
-	github.com/riandyrn/otelchi v0.5.0
+	github.com/riandyrn/otelchi v0.5.1
 	github.com/rs/zerolog v1.29.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/stretchr/testify v1.8.1
@@ -22,7 +22,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.13.0
 	go.opentelemetry.io/otel/sdk v1.13.0
 	go.opentelemetry.io/otel/trace v1.13.0
-	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+	golang.org/x/sync v0.1.0
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -65,7 +65,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.13.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.13.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
-	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b // indirect
+	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
