@@ -690,6 +690,7 @@ func Test_routesResponseErrorsLogged(t *testing.T) {
 	}
 }
 
+//goland:noinspection GoUnhandledErrorResult
 func Test_routesResponseErrorsViaResolutionErrors(t *testing.T) {
 
 	gitDir, err := os.MkdirTemp("", "*")
@@ -746,7 +747,7 @@ type badResolver struct {
 
 const badResolverMsg = "bad resolver"
 
-func (b badResolver) ReconcileProperties(ctxt context.Context, _ []string, _ []string, _ InjectedProperties, _ *Source) (ResolvedConfigValues, ResolutionMetadata, error) {
+func (b badResolver) ReconcileProperties(_ context.Context, _ []string, _ []string, _ InjectedProperties, _ *Source) (ResolvedConfigValues, ResolutionMetadata, error) {
 	return ResolvedConfigValues{}, ResolutionMetadata{}, errors.New(badResolverMsg)
 }
 
