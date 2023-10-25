@@ -6,8 +6,8 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/emirpasic/gods v1.18.1
-	github.com/go-chi/chi/v5 v5.0.8
-	github.com/go-chi/httplog v0.3.0
+	github.com/go-chi/chi/v5 v5.0.10
+	github.com/go-chi/httplog v0.3.1
 	github.com/go-git/go-git/v5 v5.8.0
 	github.com/heptiolabs/healthcheck v0.0.0-20180807145615-6ff867650f40
 	github.com/mitchellh/mapstructure v1.1.2
