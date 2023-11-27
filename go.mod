@@ -7,7 +7,7 @@ require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/go-chi/chi/v5 v5.0.10
-	github.com/go-chi/httplog v0.3.1
+	github.com/go-chi/httplog v0.3.2
 	github.com/go-git/go-git/v5 v5.10.1
 	github.com/heptiolabs/healthcheck v0.0.0-20180807145615-6ff867650f40
 	github.com/mitchellh/mapstructure v1.1.2
@@ -23,7 +23,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.19.0
 	go.opentelemetry.io/otel/trace v1.19.0
 	golang.org/x/sync v0.3.0
-	sigs.k8s.io/yaml v1.3.0
+	sigs.k8s.io/yaml v1.4.0
 )
 
 require (
