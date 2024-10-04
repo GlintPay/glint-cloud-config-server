@@ -584,10 +584,9 @@ func Test_routesTraceEnabled(t *testing.T) {
 			assertSpan(t, sr.Ended()[2],
 				"/{application}/{profiles}",
 				trace.SpanKindServer,
-				attribute.String("http.server_name", traceServerName),
+				attribute.String("net.host.name", traceServerName),
 				attribute.Int("http.status_code", http.StatusOK),
 				attribute.String("http.method", "GET"),
-				attribute.String("http.target", "/accounts/production?resolve=true&norefresh"),
 				attribute.String("http.route", "/{application}/{profiles}"),
 			)
 		})
