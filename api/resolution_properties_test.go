@@ -12,7 +12,7 @@ func Test_resolvePlaceholders(t *testing.T) {
 	tests := []placeholdersTest{
 		{
 			name: "multi-level-recurse",
-			inputs: map[string]interface{}{
+			inputs: map[string]any{
 				"b.d.a": "  ${c.d.a}${}",
 				"b.a.a": "${c.d.a}",
 				"a.a.a": "apple",
@@ -30,7 +30,7 @@ func Test_resolvePlaceholders(t *testing.T) {
 				"a.b.c": "${a.d.c}",
 				"c.e.a": "!  ${c.d.a}  ",
 			},
-			expectation: map[string]interface{}{
+			expectation: map[string]any{
 				"a.a.a": "apple",
 				"a.a.b": "bye",
 				"a.a.c": "cat",
@@ -55,72 +55,72 @@ func Test_resolvePlaceholders(t *testing.T) {
 		},
 		{
 			name: "templates-good",
-			inputs: map[string]interface{}{
+			inputs: map[string]any{
 				"a": "Application: {{ first .Applications }}, Profile: {{ first .Profiles }}, Underscored: {{ dashToUnderscore (first .Profiles) }}",
 			},
-			templatesData: map[string]interface{}{
+			templatesData: map[string]any{
 				"Applications": []string{"accounts", "application"},
 				"Profiles":     []string{"prod-uk", "prod", "base"},
 			},
-			expectation: map[string]interface{}{
+			expectation: map[string]any{
 				"a": "Application: accounts, Profile: prod-uk, Underscored: prod_uk",
 			},
 		},
 		{
 			name: "templates-good-custom-delims",
-			inputs: map[string]interface{}{
+			inputs: map[string]any{
 				"a": "Application: <<< first .Applications >>>, Profile: <<< first .Profiles >>>",
 			},
 			templateConfig: config.GoTemplate{LeftDelim: "<<<", RightDelim: ">>>"},
-			templatesData: map[string]interface{}{
+			templatesData: map[string]any{
 				"Applications": []string{"accounts", "application"},
 				"Profiles":     []string{"prod-uk", "prod", "base"},
 			},
-			expectation: map[string]interface{}{
+			expectation: map[string]any{
 				"a": "Application: accounts, Profile: prod-uk",
 			},
 		},
 		{
 			name: "templates-malformed-1",
-			inputs: map[string]interface{}{
+			inputs: map[string]any{
 				"a": "Application: {{ first .Applications }}, Profile: {{{ first .Profiles }}",
 			},
-			templatesData: map[string]interface{}{
+			templatesData: map[string]any{
 				"Applications": []string{"accounts", "application"},
 				"Profiles":     []string{"prod-uk", "prod", "base"},
 			},
-			expectation: map[string]interface{}{
+			expectation: map[string]any{
 				"a": "",
 			},
 			expectedErrorMsg: "unexpected \"{\" in command",
 		},
 		{
 			name: "templates-bad-data",
-			inputs: map[string]interface{}{
+			inputs: map[string]any{
 				"a": "Application: {{ first .Applications }}, Profile: {{ first .Profiles }}",
 			},
-			expectation: map[string]interface{}{
+			expectation: map[string]any{
 				"a": "",
 			},
 			expectedErrorMsg: "at <first .Applications>: error calling first: runtime error",
 		},
 		{
 			name: "templates-bad",
-			inputs: map[string]interface{}{
+			inputs: map[string]any{
 				"a": "Application: {{ first .Applications }}, Profile: {{ xxxx .Profiles }}",
 			},
-			templatesData: map[string]interface{}{
+			templatesData: map[string]any{
 				"Applications": []string{"accounts", "application"},
 				"Profiles":     []string{"prod-uk", "prod", "base"},
 			},
-			expectation: map[string]interface{}{
+			expectation: map[string]any{
 				"a": "",
 			},
 			expectedErrorMsg: "function \"xxxx\" not defined",
 		},
 		{
 			name: "maps",
-			inputs: map[string]interface{}{
+			inputs: map[string]any{
 				"vals.w": "w",
 				"vals.x": "${a}",
 				"vals.y": "${b}",
@@ -131,7 +131,7 @@ func Test_resolvePlaceholders(t *testing.T) {
 				"a":      1.0,
 				"b":      2.0,
 			},
-			expectation: map[string]interface{}{
+			expectation: map[string]any{
 				"a":      1.0,
 				"b":      2.0,
 				"vals.w": "w",
@@ -149,8 +149,8 @@ func Test_resolvePlaceholders(t *testing.T) {
 		},
 		{
 			name: "maps-hier",
-			inputs: map[string]interface{}{
-				"vals": map[string]interface{}{
+			inputs: map[string]any{
+				"vals": map[string]any{
 					"w": "w",
 					"x": "${a}",
 					"y": "${b}",
@@ -162,8 +162,8 @@ func Test_resolvePlaceholders(t *testing.T) {
 				"a": 1.0,
 				"b": 2.0,
 			},
-			expectation: map[string]interface{}{
-				"vals": map[string]interface{}{
+			expectation: map[string]any{
+				"vals": map[string]any{
 					"w": "w",
 					"x": "1",
 					"y": "2",
@@ -182,7 +182,7 @@ func Test_resolvePlaceholders(t *testing.T) {
 		},
 		{
 			name: "lists-flat",
-			inputs: map[string]interface{}{
+			inputs: map[string]any{
 				"vals.sub[0]": "w",
 				"vals.sub[1]": "${a}",
 				"vals.sub[2]": "${b}",
@@ -193,7 +193,7 @@ func Test_resolvePlaceholders(t *testing.T) {
 				"a":           1.0,
 				"b":           2.0,
 			},
-			expectation: map[string]interface{}{
+			expectation: map[string]any{
 				"a":           1.0,
 				"b":           2.0,
 				"vals.sub[0]": "w",
@@ -211,10 +211,10 @@ func Test_resolvePlaceholders(t *testing.T) {
 		},
 		{
 			name: "lists-hier",
-			inputs: map[string]interface{}{
+			inputs: map[string]any{
 				"a": 1.0,
 				"b": 2.0,
-				"vals": []string{
+				"vals": []any{
 					"w",
 					"${a}",
 					"${b}",
@@ -223,8 +223,8 @@ func Test_resolvePlaceholders(t *testing.T) {
 					"${}",
 					"c",
 				},
-				"otherVals": []interface{}{
-					map[string]interface{}{
+				"otherVals": []any{
+					map[string]any{
 						"new-a": "${a}",
 						"new-b": "${b}",
 						"new-c": "${c:3}",
@@ -232,15 +232,15 @@ func Test_resolvePlaceholders(t *testing.T) {
 						"new-e": "e",
 					},
 				},
-				"otherVals2": []interface{}{
+				"otherVals2": []any{
 					1, 2, 3, 3.1415927,
 				},
 			},
-			expectation: map[string]interface{}{
+			expectation: map[string]any{
 				"a": 1.0,
 				"b": 2.0,
-				"otherVals": []interface{}{
-					map[string]interface{}{
+				"otherVals": []any{
+					map[string]any{
 						"new-a": "1",
 						"new-b": "2",
 						"new-c": "3",
@@ -248,13 +248,13 @@ func Test_resolvePlaceholders(t *testing.T) {
 						"new-e": "e",
 					},
 				},
-				"otherVals2": []interface{}{
+				"otherVals2": []any{
 					"1",
 					"2",
 					"3",
 					"3.1415927",
 				},
-				"vals": []interface{}{
+				"vals": []any{
 					"w",
 					"1",
 					"2",
@@ -272,11 +272,11 @@ func Test_resolvePlaceholders(t *testing.T) {
 		},
 		{
 			name: "overflow",
-			inputs: map[string]interface{}{
+			inputs: map[string]any{
 				"a": "${b}",
 				"b": "${a}",
 			},
-			expectation: map[string]interface{}{
+			expectation: map[string]any{
 				"a": "",
 				"b": "",
 			},
@@ -287,7 +287,7 @@ func Test_resolvePlaceholders(t *testing.T) {
 		for i := 1; i <= 5; i++ {
 			t.Run(tt.name, func(t *testing.T) {
 				// Resolution is destructive, so let's make a *deep* copy
-				newData := map[string]interface{}{}
+				newData := map[string]any{}
 				e := deepCopyViaJSON(tt.inputs, newData)
 				assert.NoError(t, e)
 
@@ -320,11 +320,11 @@ type placeholdersTest struct {
 	messages         []string
 
 	templateConfig config.GoTemplate
-	templatesData  map[string]interface{}
+	templatesData  map[string]any
 }
 
 // Must deal with floats rather than ints if we're going to use this approach
-func deepCopyViaJSON(src map[string]interface{}, dest map[string]interface{}) error {
+func deepCopyViaJSON(src map[string]any, dest map[string]any) error {
 	if src == nil {
 		return errors.New("src is nil. You cannot read from a nil map")
 	}

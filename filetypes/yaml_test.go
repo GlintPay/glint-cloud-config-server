@@ -22,7 +22,7 @@ func (m mockFile) IsReadable() (bool, string) {
 	return true, ".yml"
 }
 
-func (m mockFile) ToMap() (map[string]interface{}, error) {
+func (m mockFile) ToMap() (map[string]any, error) {
 	return FromYamlToMap(m)
 }
 
@@ -51,7 +51,7 @@ func TestFromYamlToMapWithSops(t *testing.T) {
 		name        string
 		content     []byte
 		expectError bool
-		expectMap   map[string]interface{}
+		expectMap   map[string]any
 	}{
 		{
 			name: "regular yaml",
@@ -61,9 +61,9 @@ nested:
   value: test
 `),
 			expectError: false,
-			expectMap: map[string]interface{}{
+			expectMap: map[string]any{
 				"foo": "bar",
-				"nested": map[string]interface{}{
+				"nested": map[string]any{
 					"value": "test",
 				},
 			},
@@ -85,20 +85,20 @@ sops:
     version: 3.7.3
 `),
 			expectError: false, // Should not error even if decryption fails
-			expectMap: map[string]interface{}{
-				"data": map[string]interface{}{
+			expectMap: map[string]any{
+				"data": map[string]any{
 					"api_key": "ENC[AES256_GCM,data:abc123]",
 				},
-				"sops": map[string]interface{}{
-					"kms": []interface{}{
-						map[string]interface{}{
+				"sops": map[string]any{
+					"kms": []any{
+						map[string]any{
 							"arn":        "arn:aws:kms:eu-west-1:123456789012:key/123",
 							"created_at": "2024-02-10T12:00:00Z",
 							"enc":        "abc123",
 						},
 					},
-					"gcp_kms":      []interface{}{},
-					"azure_kv":      []interface{}{},
+					"gcp_kms":      []any{},
+					"azure_kv":      []any{},
 					"lastmodified": "2024-02-10T12:00:00Z",
 					"mac":         "abc123",
 					"version":     "3.7.3",

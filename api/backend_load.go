@@ -165,10 +165,10 @@ func newDiscoveryHandler(req ConfigurationRequest, source *Source) discoveryHand
 	}
 }
 
-func flattenedIndexedLists(data map[string]interface{}) {
+func flattenedIndexedLists(data map[string]any) {
 	for k, v := range data {
 		switch typed := v.(type) {
-		case []interface{}:
+		case []any:
 			{
 				// FIXME Empty list?
 				for i, val := range typed {
@@ -176,7 +176,7 @@ func flattenedIndexedLists(data map[string]interface{}) {
 					data[newKey] = val
 
 					switch typedMap := val.(type) {
-					case map[string]interface{}:
+					case map[string]any:
 						flattenedIndexedLists(typedMap)
 					}
 				}

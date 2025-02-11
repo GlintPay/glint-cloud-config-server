@@ -294,7 +294,7 @@ func (g fileWrapper) IsReadable() (bool, string) {
 	return true, suffix
 }
 
-func (g fileWrapper) ToMap() (map[string]interface{}, error) {
+func (g fileWrapper) ToMap() (map[string]any, error) {
 	return filetypes.FromYamlToMap(g)
 }
 

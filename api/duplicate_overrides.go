@@ -5,7 +5,7 @@ import "fmt"
 // Represent an explicit override that has no effect and can be removed
 type duplicate struct {
 	key    string
-	value  interface{}
+	value  any
 	source string
 }
 

@@ -86,8 +86,8 @@ c: d
 		PropertySources: []PropertySource{
 			{
 				Name: "/accounts-production.yaml",
-				Source: map[string]interface{}{
-					"site": map[string]interface{}{
+				Source: map[string]any{
+					"site": map[string]any{
 						"interval": 5.0,
 						"retries":  5.0,
 						"timeout":  5.0,
@@ -97,26 +97,26 @@ c: d
 			},
 			{
 				Name: "/accounts.yaml",
-				Source: map[string]interface{}{
-					"site": map[string]interface{}{
+				Source: map[string]any{
+					"site": map[string]any{
 						"retries": 0.0,
 						"timeout": 50.0,
 						"url":     "https://test.com",
 					},
-					"currencies": []interface{}{"USD", "EUR", "ABC"},
-					"accountstuff": map[string]interface{}{
+					"currencies": []any{"USD", "EUR", "ABC"},
+					"accountstuff": map[string]any{
 						"val":        "xxx",
-						"currencies": []interface{}{"DEF", "GHI", "JKL"},
+						"currencies": []any{"DEF", "GHI", "JKL"},
 					},
 				},
 			},
 			{
 				Name:   "/application-production.yaml",
-				Source: map[string]interface{}{"a": "b123", "b": "c234", "c": "d344"},
+				Source: map[string]any{"a": "b123", "b": "c234", "c": "d344"},
 			},
 			{
 				Name:   "/application.yaml",
-				Source: map[string]interface{}{"a": "b", "b": "c", "c": "d"},
+				Source: map[string]any{"a": "b", "b": "c", "c": "d"},
 			},
 		},
 	}, got)
@@ -204,8 +204,8 @@ c: d344
 		PropertySources: []PropertySource{
 			{
 				Name: "/accounts-production.yaml",
-				Source: map[string]interface{}{
-					"site": map[string]interface{}{
+				Source: map[string]any{
+					"site": map[string]any{
 						"interval": 5.0,
 						"retries":  5.0,
 						"timeout":  5.0,
@@ -215,25 +215,25 @@ c: d344
 			},
 			{
 				Name: "/accounts.yaml",
-				Source: map[string]interface{}{
-					"site": map[string]interface{}{
+				Source: map[string]any{
+					"site": map[string]any{
 						"retries": 0.0,
 						"timeout": 50.0,
 						"url":     "https://test.com",
 					},
-					"currencies": []interface{}{"USD", "EUR", "ABC"},
-					"accountstuff": map[string]interface{}{
+					"currencies": []any{"USD", "EUR", "ABC"},
+					"accountstuff": map[string]any{
 						"val":        "xxx",
-						"currencies": []interface{}{"DEF", "GHI", "JKL"},
+						"currencies": []any{"DEF", "GHI", "JKL"},
 					},
-					"more":       map[string]interface{}{"name": "Stuff", "results": []interface{}{"target/**"}, "script": []interface{}{"do this"}},
-					"develop":    []interface{}{map[string]interface{}{"main": map[string]interface{}{"name": "Stuff", "results": []interface{}{"target/**"}, "script": []interface{}{"do this"}}}},
-					"production": []interface{}{map[string]interface{}{"main": map[string]interface{}{"name": "Production stuff", "extension": false, "results": []interface{}{"target/**"}, "script": []interface{}{"do this"}}}},
+					"more":       map[string]any{"name": "Stuff", "results": []any{"target/**"}, "script": []any{"do this"}},
+					"develop":    []any{map[string]any{"main": map[string]any{"name": "Stuff", "results": []any{"target/**"}, "script": []any{"do this"}}}},
+					"production": []any{map[string]any{"main": map[string]any{"name": "Production stuff", "extension": false, "results": []any{"target/**"}, "script": []any{"do this"}}}},
 				},
 			},
 			{
 				Name:   "/application-production.yaml",
-				Source: map[string]interface{}{"a": "b123", "b": "c234", "c": "d344"},
+				Source: map[string]any{"a": "b123", "b": "c234", "c": "d344"},
 			},
 		},
 	}, got)
@@ -276,7 +276,7 @@ c: d
 		PropertySources: []PropertySource{
 			{
 				Name:   filepath.Join(fileDir, "/application.yaml"),
-				Source: map[string]interface{}{"a": "b", "b": "c", "c": "d"},
+				Source: map[string]any{"a": "b", "b": "c", "c": "d"},
 			},
 		},
 	}, got)
@@ -350,8 +350,8 @@ c: d
 		PropertySources: []PropertySource{
 			{
 				Name: filepath.Join(fileDir, "/accounts-production.yaml"),
-				Source: map[string]interface{}{
-					"site": map[string]interface{}{
+				Source: map[string]any{
+					"site": map[string]any{
 						"interval": 5.0,
 						"retries":  5.0,
 						"timeout":  5.0,
@@ -361,26 +361,26 @@ c: d
 			},
 			{
 				Name: filepath.Join(fileDir, "/accounts.yaml"),
-				Source: map[string]interface{}{
-					"site": map[string]interface{}{
+				Source: map[string]any{
+					"site": map[string]any{
 						"retries": 0.0,
 						"timeout": 50.0,
 						"url":     "https://test.com",
 					},
-					"currencies": []interface{}{"USD", "EUR", "ABC"},
-					"accountstuff": map[string]interface{}{
+					"currencies": []any{"USD", "EUR", "ABC"},
+					"accountstuff": map[string]any{
 						"val":        "xxx",
-						"currencies": []interface{}{"DEF", "GHI", "JKL"},
+						"currencies": []any{"DEF", "GHI", "JKL"},
 					},
 				},
 			},
 			{
 				Name:   filepath.Join(fileDir, "/application-production.yaml"),
-				Source: map[string]interface{}{"a": "b123", "b": "c234", "c": "d344"},
+				Source: map[string]any{"a": "b123", "b": "c234", "c": "d344"},
 			},
 			{
 				Name:   filepath.Join(fileDir, "/application.yaml"),
-				Source: map[string]interface{}{"a": "b", "b": "c", "c": "d"},
+				Source: map[string]any{"a": "b", "b": "c", "c": "d"},
 			},
 		},
 	}, got)
@@ -469,27 +469,27 @@ c: d344
 		PropertySources: []PropertySource{
 			{
 				Name: "/accounts.yaml",
-				Source: map[string]interface{}{
-					"site": map[string]interface{}{
+				Source: map[string]any{
+					"site": map[string]any{
 						"retries": 0.0,
 						"timeout": 50.0,
 						"url":     "https://test.com",
 					},
-					"currencies": []interface{}{"USD", "EUR", "ABC"},
-					"accountstuff": map[string]interface{}{
+					"currencies": []any{"USD", "EUR", "ABC"},
+					"accountstuff": map[string]any{
 						"val":        "xxx",
-						"currencies": []interface{}{"DEF", "GHI", "JKL"},
+						"currencies": []any{"DEF", "GHI", "JKL"},
 					},
 				},
 			},
 			{
 				Name:   "/application.yaml",
-				Source: map[string]interface{}{"a": "b", "b": "c", "c": "d"},
+				Source: map[string]any{"a": "b", "b": "c", "c": "d"},
 			},
 			{
 				Name: filepath.Join(fileDir, "/accounts-production.yaml"),
-				Source: map[string]interface{}{
-					"site": map[string]interface{}{
+				Source: map[string]any{
+					"site": map[string]any{
 						"interval": 5.0,
 						"retries":  5.0,
 						"timeout":  5.0,
@@ -499,7 +499,7 @@ c: d344
 			},
 			{
 				Name:   filepath.Join(fileDir, "/application-production.yaml"),
-				Source: map[string]interface{}{"a": "b123", "b": "c234", "c": "d344"},
+				Source: map[string]any{"a": "b123", "b": "c234", "c": "d344"},
 			},
 		},
 	}, got)

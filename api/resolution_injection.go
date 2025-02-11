@@ -4,7 +4,7 @@ import (
 	"strings"
 )
 
-type InjectedProperties map[string]interface{}
+type InjectedProperties map[string]any
 
 func preprocess(key string) bool {
 	return strings.HasPrefix(key, "^")

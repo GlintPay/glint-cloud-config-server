@@ -9,9 +9,9 @@ import (
 
 // SopsMetadata represents the SOPS metadata structure in encrypted files
 type SopsMetadata struct {
-	Kms          interface{} `yaml:"kms,omitempty"`
-	GcpKms       interface{} `yaml:"gcp_kms,omitempty"`
-	AzureKv      interface{} `yaml:"azure_kv,omitempty"`
+	Kms          any `yaml:"kms,omitempty"`
+	GcpKms       any `yaml:"gcp_kms,omitempty"`
+	AzureKv      any `yaml:"azure_kv,omitempty"`
 	LastModified string      `yaml:"lastmodified,omitempty"`
 	Mac          string      `yaml:"mac,omitempty"`
 	Version      string      `yaml:"version,omitempty"`
@@ -19,7 +19,7 @@ type SopsMetadata struct {
 
 // IsEncrypted checks if the provided YAML content contains SOPS metadata
 func IsEncrypted(data []byte) bool {
-	var content map[string]interface{}
+	var content map[string]any
 	if err := yaml.Unmarshal(data, &content); err != nil {
 		return false
 	}
