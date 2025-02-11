@@ -16,7 +16,6 @@ func FromYamlToMap(f backend.File) (map[string]any, error) {
 
 	// Try to decrypt if the content is SOPS-encrypted
 	if sops.IsEncrypted(bytes) {
-		log.Debug().Str("file", f.Name()).Msg("attempting to decrypt SOPS-encrypted content")
 		decrypted, err := sops.DecryptYAML(bytes)
 		if err != nil {
 			log.Warn().Err(err).Str("file", f.Name()).Msg("failed to decrypt SOPS-encrypted content, using original content")
