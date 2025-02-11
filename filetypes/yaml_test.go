@@ -84,26 +84,21 @@ sops:
     mac: abc123
     version: 3.7.3
 `),
-			expectError: false, // Should not error even if decryption fails
-			expectMap: map[string]any{
-				"data": map[string]any{
-					"api_key": "ENC[AES256_GCM,data:abc123]",
-				},
-				"sops": map[string]any{
-					"kms": []any{
-						map[string]any{
-							"arn":        "arn:aws:kms:eu-west-1:123456789012:key/123",
-							"created_at": "2024-02-10T12:00:00Z",
-							"enc":        "abc123",
-						},
-					},
-					"gcp_kms":      []any{},
-					"azure_kv":      []any{},
-					"lastmodified": "2024-02-10T12:00:00Z",
-					"mac":         "abc123",
-					"version":     "3.7.3",
-				},
-			},
+			expectError: true,
+			expectMap:   nil,
+		},
+		{
+			name: "decryption fails",
+			content: []byte(`sops:
+  kms: []
+  gcp_kms: []
+  azure_kv: []
+  lastmodified: "2024-02-10T12:00:00Z"
+  mac: "abc123"
+  version: "3.7.3"
+`),
+			expectError: true,
+			expectMap:   nil,
 		},
 		{
 			name: "invalid yaml",

@@ -1,10 +1,11 @@
 package filetypes
 
 import (
+	"io"
+
 	"github.com/GlintPay/gccs/backend"
 	"github.com/GlintPay/gccs/sops"
 	"github.com/rs/zerolog/log"
-	"io"
 	"sigs.k8s.io/yaml"
 )
 
@@ -18,7 +19,7 @@ func FromYamlToMap(f backend.File) (map[string]any, error) {
 	if sops.IsEncrypted(bytes) {
 		decrypted, err := sops.DecryptYAML(bytes)
 		if err != nil {
-			log.Warn().Err(err).Str("file", f.Name()).Msg("failed to decrypt SOPS-encrypted content, using original content")
+			return nil, err
 		} else {
 			bytes = decrypted
 		}
