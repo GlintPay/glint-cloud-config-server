@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: Check out service repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure Linters
         run: |
@@ -23,7 +23,8 @@ jobs:
           EOT
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v4
         with:
-          args: --enable gocyclo
+          args: --timeout=3m --enable gocyclo
+          skip-cache: true
 
