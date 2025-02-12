@@ -9,12 +9,12 @@ import (
 
 // SopsMetadata represents the SOPS metadata structure in encrypted files
 type SopsMetadata struct {
-	Kms          any `yaml:"kms,omitempty"`
-	GcpKms       any `yaml:"gcp_kms,omitempty"`
-	AzureKv      any `yaml:"azure_kv,omitempty"`
-	LastModified string      `yaml:"lastmodified,omitempty"`
-	Mac          string      `yaml:"mac,omitempty"`
-	Version      string      `yaml:"version,omitempty"`
+	Kms          any    `yaml:"kms,omitempty"`
+	GcpKms       any    `yaml:"gcp_kms,omitempty"`
+	AzureKv      any    `yaml:"azure_kv,omitempty"`
+	LastModified string `yaml:"lastmodified,omitempty"`
+	Mac          string `yaml:"mac,omitempty"`
+	Version      string `yaml:"version,omitempty"`
 }
 
 // IsEncrypted checks if the provided YAML content contains SOPS metadata
@@ -31,7 +31,12 @@ func IsEncrypted(data []byte) bool {
 // Returns the decrypted content if successful, original content if not encrypted,
 // or error if decryption fails
 func DecryptYAML(data []byte) ([]byte, error) {
-	if !IsEncrypted(data) {
+	var content map[string]any
+	if err := yaml.Unmarshal(data, &content); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal YAML content: %w", err)
+	}
+	_, hasSops := content["sops"]
+	if !hasSops {
 		return data, nil
 	}
 
