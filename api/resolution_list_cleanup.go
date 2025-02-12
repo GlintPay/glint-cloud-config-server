@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func shouldSkipCompletelyReplacedFlattenedList(psName string, lists map[string]interface{}, k string) bool {
+func shouldSkipCompletelyReplacedFlattenedList(psName string, lists map[string]any, k string) bool {
 	for eachName := range lists {
 		if strings.HasPrefix(k, eachName+"[") {
 			log.Info().Msgf("Skipping overridden list entry [%s] in source [%s]", k, psName)
@@ -16,8 +16,8 @@ func shouldSkipCompletelyReplacedFlattenedList(psName string, lists map[string]i
 	return false
 }
 
-func findCompletelyReplacedFlattenedLists(sources []PropertySource) []map[string]interface{} {
-	listsToRemove := make([]map[string]interface{}, 0)
+func findCompletelyReplacedFlattenedLists(sources []PropertySource) []map[string]any {
+	listsToRemove := make([]map[string]any, 0)
 	for _, ps := range sources {
 		listsToRemove = append(listsToRemove, findFlattenedLists(ps.Source))
 	}
@@ -40,16 +40,16 @@ func findCompletelyReplacedFlattenedLists(sources []PropertySource) []map[string
 	return listsToRemove
 }
 
-func findFlattenedLists(source map[string]interface{}) map[string]interface{} {
-	var listNames = make(map[string]interface{})
+func findFlattenedLists(source map[string]any) map[string]any {
+	var listNames = make(map[string]any)
 
 	// Grab list names
 	for propertyName := range source {
 		// Handle sublists recursively
-		//switch valueType := value.(type) {
-		//case map[string]interface{}:
-		//	findFlattenedLists(valueType)
-		//}
+		switch value := source[propertyName].(type) {
+		case map[string]any:
+			findFlattenedLists(value)
+		}
 
 		if strings.HasSuffix(propertyName, "]") {
 			idx := strings.IndexByte(propertyName, '[')

@@ -16,14 +16,14 @@ func Test_reconcileProperties(t *testing.T) {
 	source := Source{Name: "test-app",
 		PropertySources: []PropertySource{
 			// deliberately misordered
-			{Name: namePrefix + "backend.yml", Source: map[string]interface{}{"override": "3", "type": "backend"}},
-			{Name: namePrefix + "application.yml", Source: map[string]interface{}{"override": "1", "glint.a": "b", "glint.b": "c", "glint.c": "d", "glint.name": "Default", "myService.host": "default", "myService.url": "https://${myService.host:UNUSED}.glintpay.com", "x.y.z": 123}},
-			{Name: namePrefix + "myapp-mine.yml", Source: map[string]interface{}{"override": "7"}},
-			{Name: namePrefix + "backend-mine.yml", Source: map[string]interface{}{"override": "5", "owner": "Mine"}},
-			{Name: namePrefix + "myapp.yml", Source: map[string]interface{}{"override": "4"}},
-			{Name: namePrefix + "backend-production.yml", Source: map[string]interface{}{"override": "6"}},
-			{Name: namePrefix + "myapp-production.yml", Source: map[string]interface{}{"override": "8", "owner": "everyone"}},
-			{Name: namePrefix + "application-production.yml", Source: map[string]interface{}{"override": "2", "glint.name": "Production", "myService.host": "production"}},
+			{Name: namePrefix + "backend.yml", Source: map[string]any{"override": "3", "type": "backend"}},
+			{Name: namePrefix + "application.yml", Source: map[string]any{"override": "1", "glint.a": "b", "glint.b": "c", "glint.c": "d", "glint.name": "Default", "myService.host": "default", "myService.url": "https://${myService.host:UNUSED}.glintpay.com", "x.y.z": 123}},
+			{Name: namePrefix + "myapp-mine.yml", Source: map[string]any{"override": "7"}},
+			{Name: namePrefix + "backend-mine.yml", Source: map[string]any{"override": "5", "owner": "Mine"}},
+			{Name: namePrefix + "myapp.yml", Source: map[string]any{"override": "4"}},
+			{Name: namePrefix + "backend-production.yml", Source: map[string]any{"override": "6"}},
+			{Name: namePrefix + "myapp-production.yml", Source: map[string]any{"override": "8", "owner": "everyone"}},
+			{Name: namePrefix + "application-production.yml", Source: map[string]any{"override": "2", "glint.name": "Production", "myService.host": "production"}},
 		}}
 
 	resolver := Resolver{}
@@ -44,33 +44,33 @@ func Test_reconcileProperties_ListsReplacedNotMerged_Hier(t *testing.T) {
 		{
 			name: "three-level",
 			sources: []PropertySource{
-				{Name: "/application.yml", Source: map[string]interface{}{"list": []string{"a", "b", "c"}}},
-				{Name: "/myapp-mine.yml", Source: map[string]interface{}{"list": []string{"y"}}},
-				{Name: "/myapp.yml", Source: map[string]interface{}{"list": []string{"d", "x"}}},
+				{Name: "/application.yml", Source: map[string]any{"list": []string{"a", "b", "c"}}},
+				{Name: "/myapp-mine.yml", Source: map[string]any{"list": []string{"y"}}},
+				{Name: "/myapp.yml", Source: map[string]any{"list": []string{"d", "x"}}},
 			},
 			expectation: ResolvedConfigValues{"list": []string{"y"}},
 		},
 		{
 			name: "longer",
 			sources: []PropertySource{
-				{Name: "/application.yml", Source: map[string]interface{}{"list": []string{"a", "b", "c"}}},
-				{Name: "/myapp-mine.yml", Source: map[string]interface{}{"list": []string{"y", "1", "2", "3", "4"}}},
+				{Name: "/application.yml", Source: map[string]any{"list": []string{"a", "b", "c"}}},
+				{Name: "/myapp-mine.yml", Source: map[string]any{"list": []string{"y", "1", "2", "3", "4"}}},
 			},
 			expectation: ResolvedConfigValues{"list": []string{"y", "1", "2", "3", "4"}},
 		},
 		{
 			name: "longer-2",
 			sources: []PropertySource{
-				{Name: "/application.yml", Source: map[string]interface{}{"list": []string{}}},
-				{Name: "/myapp-mine.yml", Source: map[string]interface{}{"list": []string{"y", "1", "2", "3", "4"}}},
+				{Name: "/application.yml", Source: map[string]any{"list": []string{}}},
+				{Name: "/myapp-mine.yml", Source: map[string]any{"list": []string{"y", "1", "2", "3", "4"}}},
 			},
 			expectation: ResolvedConfigValues{"list": []string{"y", "1", "2", "3", "4"}},
 		},
 		{
 			name: "shorter",
 			sources: []PropertySource{
-				{Name: "/application.yml", Source: map[string]interface{}{"list": []string{"a", "b", "c"}}},
-				{Name: "/myapp-mine.yml", Source: map[string]interface{}{"list": []string{}}},
+				{Name: "/application.yml", Source: map[string]any{"list": []string{"a", "b", "c"}}},
+				{Name: "/myapp-mine.yml", Source: map[string]any{"list": []string{}}},
 			},
 			expectation: ResolvedConfigValues{"list": []string{}},
 		},
@@ -93,33 +93,33 @@ func Test_reconcileProperties_ListsReplacedNotMerged_Flattened(t *testing.T) {
 		{
 			name: "three-level",
 			sources: []PropertySource{
-				{Name: "/application.yml", Source: map[string]interface{}{"list[0]": "a", "list[1]": "b", "list[2]": "c"}},
-				{Name: "/myapp-mine.yml", Source: map[string]interface{}{"list[0]": "y", "cc[0]": "eur"}},
-				{Name: "/myapp.yml", Source: map[string]interface{}{"list[0]": "d", "list[1]": "x", "cc[0]": "usd"}},
+				{Name: "/application.yml", Source: map[string]any{"list[0]": "a", "list[1]": "b", "list[2]": "c"}},
+				{Name: "/myapp-mine.yml", Source: map[string]any{"list[0]": "y", "cc[0]": "eur"}},
+				{Name: "/myapp.yml", Source: map[string]any{"list[0]": "d", "list[1]": "x", "cc[0]": "usd"}},
 			},
 			expectation: ResolvedConfigValues{"list[0]": "y", "cc[0]": "eur"},
 		},
 		{
 			name: "longer",
 			sources: []PropertySource{
-				{Name: "/application.yml", Source: map[string]interface{}{"xx.list[0]": "xxx", "list[0]": "a", "list[1]": "b", "list[2]": "c"}},
-				{Name: "/myapp-mine.yml", Source: map[string]interface{}{"list[0]": "y", "list[1]": "1", "list[2]": "2", "list[3]": "3", "list[4]": "4"}},
+				{Name: "/application.yml", Source: map[string]any{"xx.list[0]": "xxx", "list[0]": "a", "list[1]": "b", "list[2]": "c"}},
+				{Name: "/myapp-mine.yml", Source: map[string]any{"list[0]": "y", "list[1]": "1", "list[2]": "2", "list[3]": "3", "list[4]": "4"}},
 			},
 			expectation: ResolvedConfigValues{"list[0]": "y", "list[1]": "1", "list[2]": "2", "list[3]": "3", "list[4]": "4", "xx.list[0]": "xxx"},
 		},
 		{
 			name: "longer-2",
 			sources: []PropertySource{
-				{Name: "/application.yml", Source: map[string]interface{}{"list[0]": 1}},
-				{Name: "/myapp-mine.yml", Source: map[string]interface{}{"list[0]": "y", "list[1]": "1", "list[2]": "2", "list[3]": "3", "list[4]": "4"}},
+				{Name: "/application.yml", Source: map[string]any{"list[0]": 1}},
+				{Name: "/myapp-mine.yml", Source: map[string]any{"list[0]": "y", "list[1]": "1", "list[2]": "2", "list[3]": "3", "list[4]": "4"}},
 			},
 			expectation: ResolvedConfigValues{"list[0]": "y", "list[1]": "1", "list[2]": "2", "list[3]": "3", "list[4]": "4"},
 		},
 		{
 			name: "shorter",
 			sources: []PropertySource{
-				{Name: "/application.yml", Source: map[string]interface{}{"list[0]": "a", "list[1]": "b", "list[2]": "c"}},
-				{Name: "/myapp-mine.yml", Source: map[string]interface{}{"list[0]": "x"}},
+				{Name: "/application.yml", Source: map[string]any{"list[0]": "a", "list[1]": "b", "list[2]": "c"}},
+				{Name: "/myapp-mine.yml", Source: map[string]any{"list[0]": "x"}},
 			},
 			expectation: ResolvedConfigValues{"list[0]": "x"},
 		},
@@ -147,10 +147,10 @@ func Test_reconcilePropertiesWithInjection(t *testing.T) {
 
 	source := Source{Name: "test-app",
 		PropertySources: []PropertySource{
-			{Name: "backend-mine.yml", Source: map[string]interface{}{"owner": "Mine"}},
-			{Name: "backend.yml", Source: map[string]interface{}{"owner": "Unknown", "type": "backend"}},
-			{Name: "application-development-eu.yml", Source: map[string]interface{}{"glint.name": "Production", "myService.host": "production"}},
-			{Name: "application.yml", Source: map[string]interface{}{"glint.a": "b", "glint.b": "c", "glint.c": "d", "glint.name": "Default", "myService.host": "default", "myService.url": "https://${myService.host:UNUSED}.glintpay.com", "x.y.z": 123}},
+			{Name: "backend-mine.yml", Source: map[string]any{"owner": "Mine"}},
+			{Name: "backend.yml", Source: map[string]any{"owner": "Unknown", "type": "backend"}},
+			{Name: "application-development-eu.yml", Source: map[string]any{"glint.name": "Production", "myService.host": "production"}},
+			{Name: "application.yml", Source: map[string]any{"glint.a": "b", "glint.b": "c", "glint.c": "d", "glint.name": "Default", "myService.host": "default", "myService.url": "https://${myService.host:UNUSED}.glintpay.com", "x.y.z": 123}},
 		}}
 
 	injections := InjectedProperties{ /* overwritten */ "^owner": "Mine" /* overwritten */, "^glint.name": "blah" /* good */, "^injectedServicename": "blah", "glint.c": "overwrite!"}
@@ -171,8 +171,8 @@ func Test_reconcileWithPointlessOverride(t *testing.T) {
 
 	source := Source{Name: "test-app",
 		PropertySources: []PropertySource{
-			{Name: "backend-mine.yml", Source: map[string]interface{}{"owner": "Mine"}},
-			{Name: "backend.yml", Source: map[string]interface{}{"owner": "Mine", "type": "backend"}},
+			{Name: "backend-mine.yml", Source: map[string]any{"owner": "Mine"}},
+			{Name: "backend.yml", Source: map[string]any{"owner": "Mine", "type": "backend"}},
 		}}
 
 	resolver := Resolver{}
@@ -189,7 +189,7 @@ func Test_reconcileProperties_defaultValue(t *testing.T) {
 
 	source := Source{Name: "xxx",
 		PropertySources: []PropertySource{
-			{Name: "application.yml", Source: map[string]interface{}{"glint.a": "b", "myService.url": "https://${MISSING:goodDefault}.glintpay.com"}},
+			{Name: "application.yml", Source: map[string]any{"glint.a": "b", "myService.url": "https://${MISSING:goodDefault}.glintpay.com"}},
 		}}
 
 	resolver := Resolver{}
@@ -205,7 +205,7 @@ func Test_reconcileProperties_missingPropertyRef(t *testing.T) {
 
 	source := Source{Name: "xxx",
 		PropertySources: []PropertySource{
-			{Name: "application.yml", Source: map[string]interface{}{"glint.a": "b", "myService.url": "https://${NON_EXISTENT}.glintpay.com"}},
+			{Name: "application.yml", Source: map[string]any{"glint.a": "b", "myService.url": "https://${NON_EXISTENT}.glintpay.com"}},
 		}}
 
 	resolver := Resolver{}
@@ -223,7 +223,7 @@ func Test_reconcileProperties_missingPlaceholder(t *testing.T) {
 
 	source := Source{Name: "xxx",
 		PropertySources: []PropertySource{
-			{Name: "application.yml", Source: map[string]interface{}{"glint.a": "b", "myService.url": "https://${  }.glintpay.com"}},
+			{Name: "application.yml", Source: map[string]any{"glint.a": "b", "myService.url": "https://${  }.glintpay.com"}},
 		}}
 
 	resolver := Resolver{}
@@ -243,8 +243,8 @@ func Test_MapOverrideDoesntFailWithUncomparableTypesPanic(t *testing.T) {
 
 	source := Source{Name: "xxx",
 		PropertySources: []PropertySource{
-			{Name: "application-mine.yml", Source: map[string]interface{}{"owner": map[string]interface{}{"a": "xxx"}}},
-			{Name: "application.yml", Source: map[string]interface{}{"owner": map[string]interface{}{"a": "c"}, "type": "backend"}},
+			{Name: "application-mine.yml", Source: map[string]any{"owner": map[string]any{"a": "xxx"}}},
+			{Name: "application.yml", Source: map[string]any{"owner": map[string]any{"a": "c"}, "type": "backend"}},
 		}}
 
 	resolver := Resolver{}
@@ -256,7 +256,7 @@ func Test_MapOverrideDoesntFailWithUncomparableTypesPanic(t *testing.T) {
 	err := test.MarshalHierarchicalTo(resolved, &hierConfig)
 	assert.NoError(t, err)
 
-	assert.Equal(t, hierConfig, Blah{Owner: map[string]interface{}{"a": "xxx"}})
+	assert.Equal(t, hierConfig, Blah{Owner: map[string]any{"a": "xxx"}})
 	assert.Empty(t, resolver.pointlessOverrides)
 }
 
@@ -265,10 +265,10 @@ func Test_MarshalHierarchicalTo(t *testing.T) {
 
 	source := Source{Name: "test-app",
 		PropertySources: []PropertySource{
-			{Name: "backend-mine.yml", Source: map[string]interface{}{"owner": "Mine"}},
-			{Name: "application-production.yml", Source: map[string]interface{}{"glint.name": "Production", "myService.host": "production"}},
-			{Name: "backend.yml", Source: map[string]interface{}{"owner": "Unknown", "type": "backend"}},
-			{Name: "application.yml", Source: map[string]interface{}{"glint.a": "b", "glint.b": "c", "glint.c": "d", "glint.name": "Default", "myService.host": "default", "myService.url": "https://${myService.host:UNUSED}.glintpay.com", "x.y.z": 123}},
+			{Name: "backend-mine.yml", Source: map[string]any{"owner": "Mine"}},
+			{Name: "application-production.yml", Source: map[string]any{"glint.name": "Production", "myService.host": "production"}},
+			{Name: "backend.yml", Source: map[string]any{"owner": "Unknown", "type": "backend"}},
+			{Name: "application.yml", Source: map[string]any{"glint.a": "b", "glint.b": "c", "glint.c": "d", "glint.name": "Default", "myService.host": "default", "myService.url": "https://${myService.host:UNUSED}.glintpay.com", "x.y.z": 123}},
 		}}
 
 	resolver := Resolver{}
@@ -288,10 +288,10 @@ func Test_MarshalFlattenedTo(t *testing.T) {
 
 	source := Source{Name: "test-app",
 		PropertySources: []PropertySource{
-			{Name: "backend-mine.yml", Source: map[string]interface{}{"owner": "Mine"}},
-			{Name: "application-production.yml", Source: map[string]interface{}{"g.name": "Production", "myService.host": "production"}},
-			{Name: "backend.yml", Source: map[string]interface{}{"owner": "Unknown", "type": "backend"}},
-			{Name: "application.yml", Source: map[string]interface{}{"g.a": "b", "g.b": "c", "g.c": "d", "g.name": "Default", "myService.host": "default", "myService.url": "https://${myService.host:UNUSED}.glintpay.com", "x.y.z": 123}},
+			{Name: "backend-mine.yml", Source: map[string]any{"owner": "Mine"}},
+			{Name: "application-production.yml", Source: map[string]any{"g.name": "Production", "myService.host": "production"}},
+			{Name: "backend.yml", Source: map[string]any{"owner": "Unknown", "type": "backend"}},
+			{Name: "application.yml", Source: map[string]any{"g.a": "b", "g.b": "c", "g.c": "d", "g.name": "Default", "myService.host": "default", "myService.url": "https://${myService.host:UNUSED}.glintpay.com", "x.y.z": 123}},
 		}}
 
 	resolver := Resolver{}
@@ -347,7 +347,7 @@ func (b badPropertiesResolverGetter) resolvePlaceholdersFromTop() (ResolvedConfi
 }
 
 type Blah struct {
-	Owner map[string]interface{}
+	Owner map[string]any
 }
 
 type CloudConfigInjected struct {

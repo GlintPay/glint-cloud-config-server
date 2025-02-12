@@ -10,19 +10,19 @@ func TestFlatten(t *testing.T) {
 	tests := []tcase{
 		{
 			name: "",
-			args: map[string]interface{}{
-				"xxx": map[string]interface{}{
+			args: map[string]any{
+				"xxx": map[string]any{
 					"currencies": []string{"DEF", "GHI", "JKL"},
-					"metadata":   map[string]interface{}{},
+					"metadata":   map[string]any{},
 				},
 				"val":        "yyy",
 				"currencies": []string{"USD", "EUR", "ABC"},
-				"site":       map[string]interface{}{"retries": 0},
+				"site":       map[string]any{"retries": 0},
 				"timeout":    50,
 			},
-			expected: map[string]interface{}{
+			expected: map[string]any{
 				"xxx.currencies": []string{"DEF", "GHI", "JKL"},
-				"xxx.metadata":   map[string]interface{}{},
+				"xxx.metadata":   map[string]any{},
 				"currencies":     []string{"USD", "EUR", "ABC"},
 				"site.retries":   0, "timeout": 50,
 				"val": "yyy",
@@ -44,7 +44,7 @@ var dotJoiner = func(k []string) string {
 
 type tcase struct {
 	name      string
-	args      map[string]interface{}
+	args      map[string]any
 	tokenizer func([]string) string
-	expected  map[string]interface{}
+	expected  map[string]any
 }

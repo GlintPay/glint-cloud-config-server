@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-var EmptySource = map[string]interface{}{}
+var EmptySource = map[string]any{}
 
 func TestBasic(t *testing.T) {
 	expected := []PropertySource{

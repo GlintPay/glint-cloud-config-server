@@ -1,19 +1,20 @@
 package filetypes
 
 import (
+	"io"
+
 	"github.com/GlintPay/gccs/backend"
 	"github.com/rs/zerolog/log"
-	"io"
 	"sigs.k8s.io/yaml"
 )
 
-func FromYamlToMap(f backend.File) (map[string]interface{}, error) {
+func FromYamlToMap(f backend.File) (map[string]any, error) {
 	bytes, err := ToBytes(f)
 	if err != nil {
 		return nil, err
 	}
 
-	var mapStructuredData map[string]interface{}
+	var mapStructuredData map[string]any
 	if e := yaml.Unmarshal(bytes, &mapStructuredData); e != nil {
 		return nil, e
 	}
