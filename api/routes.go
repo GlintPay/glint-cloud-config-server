@@ -129,7 +129,7 @@ func (rtr *Routing) propertySourcesHandlerWithInjections() http.HandlerFunc {
 	}
 }
 
-func marshalResponseJSON(val interface{}, pretty bool) ([]byte, error) {
+func marshalResponseJSON(val any, pretty bool) ([]byte, error) {
 	if pretty {
 		return json.MarshalIndent(val, "", "  ")
 	}
@@ -161,7 +161,7 @@ func (rtr *Routing) handleOutput(w http.ResponseWriter, err error, bytes []byte,
 func (rtr *Routing) writeError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusInternalServerError)
 
-	info := map[string]interface{}{"message": err.Error()}
+	info := map[string]any{"message": err.Error()}
 	_ = json.NewEncoder(w).Encode(info)
 
 	log.Error().Err(err).Stack().Msg("Response error")

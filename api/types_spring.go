@@ -14,5 +14,5 @@ type Source struct {
 // A property source is either a YAML or a PROPERTIES file located in the repository that a Config Server is pointed at.
 type PropertySource struct {
 	Name   string                 `json:"name"`
-	Source map[string]interface{} `json:"source"`
+	Source map[string]any         `json:"source"`
 }

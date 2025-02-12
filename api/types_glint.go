@@ -18,7 +18,7 @@ type LabelsRequest struct {
 	Branch string
 }
 
-type ResolvedConfigValues map[string]interface{}
+type ResolvedConfigValues map[string]any
 
 type ResolutionMetadata struct {
 	PrecedenceDisplayMessage string
