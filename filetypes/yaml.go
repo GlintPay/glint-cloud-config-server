@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/GlintPay/gccs/backend"
+	"github.com/GlintPay/gccs/sops"
 	"github.com/rs/zerolog/log"
 	"sigs.k8s.io/yaml"
 )
@@ -12,6 +13,16 @@ func FromYamlToMap(f backend.File) (map[string]any, error) {
 	bytes, err := ToBytes(f)
 	if err != nil {
 		return nil, err
+	}
+
+	// Try to decrypt if the content is SOPS-encrypted
+	if sops.IsEncrypted(bytes) {
+		decrypted, err := sops.DecryptYAML(bytes)
+		if err != nil {
+			return nil, err
+		} else {
+			bytes = decrypted
+		}
 	}
 
 	var mapStructuredData map[string]any
