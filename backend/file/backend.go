@@ -16,7 +16,9 @@ import (
 func (s *Backend) Init(_ context.Context, appConfig config.ApplicationConfiguration) error {
 	s.Config = appConfig.File
 
-	s.Decrypter = filetypes.SopsDecrypter{}
+	s.YamlContext = filetypes.YamlContext{
+		Decrypter: filetypes.SopsDecrypter{},
+	}
 
 	log.Debug().Msgf("Reading from %s", s.Config.Path)
 	return nil
@@ -29,8 +31,8 @@ func (s *Backend) GetCurrentState(_ context.Context, branch string, _ bool) (*ba
 
 	return &backend.State{
 		Files: fileItrWrapper{
-			DirPath:   s.Config.Path,
-			Decrypter: s.Decrypter,
+			DirPath:     s.Config.Path,
+			YamlContext: s.YamlContext,
 		},
 		Version: "",
 	}, nil
@@ -53,7 +55,7 @@ func (g fileWrapper) IsReadable() (bool, string) {
 }
 
 func (g fileWrapper) ToMap() (map[string]any, error) {
-	return filetypes.FromYamlToMap(g, g.Decrypter)
+	return filetypes.FromYamlToMap(g, g.YamlContext)
 }
 
 func (g fileWrapper) FullyQualifiedName() string {
@@ -82,10 +84,10 @@ func (itr fileItrWrapper) ForEach(handler func(f backend.File) error) error {
 		name := d.Name()
 		filePath := path.Join([]string{itr.DirPath, name}...)
 		if e := handler(fileWrapper{
-			Dir:       itr.DirPath,
-			FileName:  name,
-			Path:      filePath,
-			Decrypter: itr.Decrypter,
+			Dir:         itr.DirPath,
+			FileName:    name,
+			Path:        filePath,
+			YamlContext: itr.YamlContext,
 		}); e != nil {
 			return e
 		}

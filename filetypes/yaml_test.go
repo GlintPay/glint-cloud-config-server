@@ -123,12 +123,20 @@ sops:
 			expectMap:   nil,
 		},
 		{
-			name: "invalid yaml",
+			name: "invalid yaml, with decrypter",
 			content: []byte(`
 invalid: : yaml
   - broken structure
 `),
 			decrypter:   mockDecrypter{},
+			expectError: true,
+		},
+		{
+			name: "invalid yaml, no decrypter",
+			content: []byte(`
+invalid: : yaml
+  - broken structure
+`),
 			expectError: true,
 		},
 	}
@@ -140,7 +148,7 @@ invalid: : yaml
 				content: tt.content,
 			}
 
-			result, err := FromYamlToMap(f, tt.decrypter)
+			result, err := FromYamlToMap(f, YamlContext{Decrypter: tt.decrypter})
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {

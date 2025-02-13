@@ -12,6 +12,10 @@ import (
 
 const SopsMetadataKey = "sops" // TODO Rename to distinguish from real, user-level config
 
+type YamlContext struct {
+	Decrypter
+}
+
 type Decrypter interface {
 	Decrypt(data []byte) ([]byte, error)
 }
@@ -23,7 +27,7 @@ func (s SopsDecrypter) Decrypt(data []byte) ([]byte, error) {
 	return decrypt.Data(data, "yaml")
 }
 
-func FromYamlToMap(f backend.File, decrypter Decrypter) (map[string]any, error) {
+func FromYamlToMap(f backend.File, ctxt YamlContext) (map[string]any, error) {
 	bytes, err := ToBytes(f)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
@@ -31,7 +35,7 @@ func FromYamlToMap(f backend.File, decrypter Decrypter) (map[string]any, error) 
 
 	wasSopsDecrypted := false
 
-	if decrypter != nil {
+	if ctxt.Decrypter != nil {
 		// Check if it's a valid YAML and if it's encrypted
 		hasSops, err := hasSopsMetadata(bytes) // FIXME Double Unmarshal
 		if err != nil {
@@ -40,12 +44,14 @@ func FromYamlToMap(f backend.File, decrypter Decrypter) (map[string]any, error) 
 
 		// If it has SOPS metadata, decrypt it
 		if hasSops {
-			decrypted, err := decrypter.Decrypt(bytes)
+			decrypted, err := ctxt.Decrypter.Decrypt(bytes)
 			if err != nil {
 				return nil, fmt.Errorf("failed to decrypt SOPS-encrypted content: %w", err)
 			}
-			bytes = decrypted
 			wasSopsDecrypted = true
+
+			// We will need to re-unmarshal the newly decrypted bytes into the map
+			bytes = decrypted
 		}
 	}
 

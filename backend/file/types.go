@@ -6,8 +6,8 @@ import (
 )
 
 type Backend struct {
-	Config    config.FileConfig
-	Decrypter filetypes.Decrypter
+	Config      config.FileConfig
+	YamlContext filetypes.YamlContext
 }
 
 func (s *Backend) Order() int {
@@ -15,15 +15,15 @@ func (s *Backend) Order() int {
 }
 
 type fileItrWrapper struct {
-	DirPath   string
-	Decrypter filetypes.Decrypter
+	DirPath     string
+	YamlContext filetypes.YamlContext
 }
 
 type fileWrapper struct {
-	FileName  string
-	Path      string
-	Dir       string
-	Decrypter filetypes.Decrypter
+	FileName    string
+	Path        string
+	Dir         string
+	YamlContext filetypes.YamlContext
 }
 
 type file struct {

@@ -17,7 +17,7 @@ type Backend struct {
 
 	commitsLock sync.RWMutex
 
-	Decrypter filetypes.Decrypter
+	YamlContext filetypes.YamlContext
 }
 
 func (s *Backend) Order() int {
@@ -25,17 +25,17 @@ func (s *Backend) Order() int {
 }
 
 type fileItrWrapper struct {
-	RepoUri   string
-	Files     *object.FileIter
-	Dir       string
-	Decrypter filetypes.Decrypter
+	RepoUri     string
+	Files       *object.FileIter
+	Dir         string
+	YamlContext filetypes.YamlContext
 }
 
 type fileWrapper struct {
-	RepoUri   string
-	File      *object.File
-	Dir       string
-	Decrypter filetypes.Decrypter
+	RepoUri     string
+	File        *object.File
+	Dir         string
+	YamlContext filetypes.YamlContext
 }
 
 type fileBlob struct {

@@ -25,7 +25,9 @@ import (
 func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfiguration) error {
 	s.Config = config.Git
 
-	s.Decrypter = filetypes.SopsDecrypter{}
+	s.YamlContext = filetypes.YamlContext{
+		Decrypter: filetypes.SopsDecrypter{},
+	}
 
 	if s.Config.PrivateKey != "" {
 		hostKeyCallback, err := ssh.NewKnownHostsCallback(s.Config.KnownHostsFile)
@@ -276,10 +278,10 @@ func (s *Backend) GetCurrentState(ctxt context.Context, branch string, refresh b
 
 	return &backend.State{
 		Files: fileItrWrapper{
-			Dir:       s.Config.Basedir,
-			RepoUri:   s.Config.Uri,
-			Files:     commitFiles,
-			Decrypter: s.Decrypter,
+			Dir:         s.Config.Basedir,
+			RepoUri:     s.Config.Uri,
+			Files:       commitFiles,
+			YamlContext: s.YamlContext,
 		},
 		Version: commit.Hash.String(),
 	}, nil
@@ -302,7 +304,7 @@ func (g fileWrapper) IsReadable() (bool, string) {
 }
 
 func (g fileWrapper) ToMap() (map[string]any, error) {
-	return filetypes.FromYamlToMap(g, g.Decrypter)
+	return filetypes.FromYamlToMap(g, g.YamlContext)
 }
 
 func (g fileWrapper) FullyQualifiedName() string {
@@ -324,10 +326,10 @@ func (g fileBlob) Reader() (io.ReadCloser, error) {
 func (itr fileItrWrapper) ForEach(handler func(f backend.File) error) error {
 	return itr.Files.ForEach(func(f *object.File) error {
 		return handler(fileWrapper{
-			Dir:       itr.Dir,
-			RepoUri:   itr.RepoUri,
-			File:      f,
-			Decrypter: itr.Decrypter,
+			Dir:         itr.Dir,
+			RepoUri:     itr.RepoUri,
+			File:        f,
+			YamlContext: itr.YamlContext,
 		})
 	})
 }

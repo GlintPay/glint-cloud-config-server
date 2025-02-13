@@ -12,17 +12,19 @@ import (
 )
 
 func TestInit(t *testing.T) {
+	defaultYamlCtxt := filetypes.YamlContext{Decrypter: filetypes.SopsDecrypter{}}
+
 	tests := []example{
 		{
 			name:      "default",
 			appConfig: config.ApplicationConfiguration{},
 			want: backend.Backends([]backend.Backend{
 				&git.Backend{
-					Config:    config.GitConfig{},
-					Decrypter: filetypes.SopsDecrypter{},
+					Config:      config.GitConfig{},
+					YamlContext: defaultYamlCtxt,
 				},
 				&file.Backend{
-					Decrypter: filetypes.SopsDecrypter{},
+					YamlContext: defaultYamlCtxt,
 				},
 			}),
 			wantErr: false,
@@ -32,7 +34,7 @@ func TestInit(t *testing.T) {
 			appConfig: config.ApplicationConfiguration{Git: config.GitConfig{Disabled: true}},
 			want: backend.Backends([]backend.Backend{
 				&file.Backend{
-					Decrypter: filetypes.SopsDecrypter{},
+					YamlContext: defaultYamlCtxt,
 				},
 			}),
 			wantErr: false,
@@ -43,7 +45,7 @@ func TestInit(t *testing.T) {
 			want: backend.Backends([]backend.Backend{
 				&git.Backend{
 					EnableTrace: false,
-					Decrypter:   filetypes.SopsDecrypter{},
+					YamlContext: defaultYamlCtxt,
 				},
 			}),
 			wantErr: false,
