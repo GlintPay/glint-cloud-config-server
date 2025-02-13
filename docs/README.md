@@ -334,6 +334,46 @@ This allows instrumentation of HTTP requests with some additional observability 
 
   tbc
 
+* Support for **SOPS decryption**
+
+----
+
+## What is SOPS?
+
+SOPS (Secrets OPerationS) is an editor for encrypted files, designed to manage sensitive data in configuration files.
+
+It supports various formats like YAML, JSON, ENV, INI, and BINARY, but in the context of `glint-cloud-config-server`, YAML is the only supported format.
+
+SOPS encrypts data using different key management systems, including:
+
+*   AWS KMS
+*   GCP KMS
+*   Azure Key Vault
+*   age
+*   PGP
+
+For more detailed information, refer to the official [SOPS documentation](https://getsops.io/docs).
+
+## How to Use SOPS
+
+1.  **Download SOPS:** Obtain the latest stable release from the SOPS releases page, or use a package manager like Homebrew or DevBox.
+
+2.  **Set up Encryption Keys:** Choose your preferred encryption method and configure the necessary environment variables.
+
+3.  **Encrypt Files:** Use the `sops encrypt` command with the file path as an argument.
+
+    SOPS will encrypt the file using the configured encryption method.
+
+    SOPS-encrypted files contain all the necessary information for decryption, requiring only valid credentials and KMS key permissions.
+
+4.  **Edit Encrypted Files:** Use the `sops edit` command with the file path as an argument.
+
+    SOPS will decrypt the file, open it in your default editor (defined by the `$EDITOR` environment variable, or vim if not set), and re-encrypt it upon saving.
+
+5.  **Decrypt Files:** To decrypt a file for viewing, use the `-d` flag with the `sops decrypt` command.
+
+`glint-cloud-config-server` decrypts SOPS-encrypted configuration values before returning them to the client.
+
 ----
 
 ## Missing features
