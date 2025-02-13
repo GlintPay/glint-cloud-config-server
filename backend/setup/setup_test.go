@@ -6,6 +6,7 @@ import (
 	"github.com/GlintPay/gccs/backend/file"
 	"github.com/GlintPay/gccs/backend/git"
 	"github.com/GlintPay/gccs/config"
+	"github.com/GlintPay/gccs/filetypes"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -16,8 +17,13 @@ func TestInit(t *testing.T) {
 			name:      "default",
 			appConfig: config.ApplicationConfiguration{},
 			want: backend.Backends([]backend.Backend{
-				&git.Backend{EnableTrace: false},
-				&file.Backend{},
+				&git.Backend{
+					Config:    config.GitConfig{},
+					Decrypter: filetypes.SopsDecrypter{},
+				},
+				&file.Backend{
+					Decrypter: filetypes.SopsDecrypter{},
+				},
 			}),
 			wantErr: false,
 		},
@@ -25,7 +31,9 @@ func TestInit(t *testing.T) {
 			name:      "no-git",
 			appConfig: config.ApplicationConfiguration{Git: config.GitConfig{Disabled: true}},
 			want: backend.Backends([]backend.Backend{
-				&file.Backend{},
+				&file.Backend{
+					Decrypter: filetypes.SopsDecrypter{},
+				},
 			}),
 			wantErr: false,
 		},
@@ -33,7 +41,10 @@ func TestInit(t *testing.T) {
 			name:      "no-file",
 			appConfig: config.ApplicationConfiguration{File: config.FileConfig{Disabled: true}},
 			want: backend.Backends([]backend.Backend{
-				&git.Backend{EnableTrace: false},
+				&git.Backend{
+					EnableTrace: false,
+					Decrypter:   filetypes.SopsDecrypter{},
+				},
 			}),
 			wantErr: false,
 		},

@@ -1,9 +1,13 @@
 package file
 
-import "github.com/GlintPay/gccs/config"
+import (
+	"github.com/GlintPay/gccs/config"
+	"github.com/GlintPay/gccs/filetypes"
+)
 
 type Backend struct {
-	Config config.FileConfig
+	Config    config.FileConfig
+	Decrypter filetypes.Decrypter
 }
 
 func (s *Backend) Order() int {
@@ -11,13 +15,15 @@ func (s *Backend) Order() int {
 }
 
 type fileItrWrapper struct {
-	DirPath string
+	DirPath   string
+	Decrypter filetypes.Decrypter
 }
 
 type fileWrapper struct {
-	FileName string
-	Path     string
-	Dir      string
+	FileName  string
+	Path      string
+	Dir       string
+	Decrypter filetypes.Decrypter
 }
 
 type file struct {

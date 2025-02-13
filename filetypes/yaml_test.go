@@ -2,6 +2,7 @@ package filetypes
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"testing"
 
@@ -14,24 +15,36 @@ type mockFile struct {
 	content []byte
 }
 
+type mockDecrypter struct{}
+
+func (m mockDecrypter) Decrypt(data []byte) ([]byte, error) {
+	return data, nil
+}
+
+type erroringDecrypter struct{}
+
+func (m erroringDecrypter) Decrypt(data []byte) ([]byte, error) {
+	return nil, errors.New("error")
+}
+
 func (m mockFile) Name() string {
 	return m.name
 }
 
 func (m mockFile) IsReadable() (bool, string) {
-	return true, ".yml"
+	panic("unexpected")
 }
 
 func (m mockFile) ToMap() (map[string]any, error) {
-	return FromYamlToMap(m)
+	panic("unexpected")
 }
 
 func (m mockFile) FullyQualifiedName() string {
-	return m.name
+	panic("unexpected")
 }
 
 func (m mockFile) Location() string {
-	return m.name
+	panic("unexpected")
 }
 
 func (m mockFile) Data() backend.Blob {
@@ -50,6 +63,7 @@ func TestFromYamlToMapWithSops(t *testing.T) {
 	tests := []struct {
 		name        string
 		content     []byte
+		decrypter   Decrypter
 		expectError bool
 		expectMap   map[string]any
 	}{
@@ -60,6 +74,8 @@ foo: bar
 nested:
   value: test
 `),
+
+			decrypter:   mockDecrypter{},
 			expectError: false,
 			expectMap: map[string]any{
 				"foo": "bar",
@@ -84,8 +100,13 @@ sops:
     mac: abc123
     version: 3.7.3
 `),
-			expectError: true,
-			expectMap:   nil,
+			decrypter:   mockDecrypter{},
+			expectError: false,
+			expectMap: map[string]any{
+				"data": map[string]any{
+					"api_key": "ENC[AES256_GCM,data:abc123]",
+				},
+			},
 		},
 		{
 			name: "decryption fails",
@@ -97,6 +118,7 @@ sops:
   mac: "abc123"
   version: "3.7.3"
 `),
+			decrypter:   erroringDecrypter{},
 			expectError: true,
 			expectMap:   nil,
 		},
@@ -106,6 +128,7 @@ sops:
 invalid: : yaml
   - broken structure
 `),
+			decrypter:   mockDecrypter{},
 			expectError: true,
 		},
 	}
@@ -117,7 +140,7 @@ invalid: : yaml
 				content: tt.content,
 			}
 
-			result, err := FromYamlToMap(f)
+			result, err := FromYamlToMap(f, tt.decrypter)
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
