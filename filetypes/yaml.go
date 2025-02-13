@@ -29,8 +29,6 @@ func FromYamlToMap(f backend.File, ctxt YamlContext) (map[string]any, error) {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	wasSopsDecrypted := false
-
 	if ctxt.Decrypter != nil {
 		// Check if it's a valid YAML and if it's encrypted
 		hasSops, err := hasSopsMetadata(bytes) // FIXME Double Unmarshal
@@ -44,7 +42,6 @@ func FromYamlToMap(f backend.File, ctxt YamlContext) (map[string]any, error) {
 			if err != nil {
 				return nil, fmt.Errorf("failed to decrypt SOPS-encrypted content: %w", err)
 			}
-			wasSopsDecrypted = true
 
 			// We will need to re-unmarshal the newly decrypted bytes into the map
 			bytes = decrypted
@@ -55,10 +52,6 @@ func FromYamlToMap(f backend.File, ctxt YamlContext) (map[string]any, error) {
 	var mapStructuredData map[string]any
 	if err := yaml.Unmarshal(bytes, &mapStructuredData); err != nil {
 		return nil, err
-	}
-
-	if wasSopsDecrypted {
-		delete(mapStructuredData, SopsMetadataKey)
 	}
 
 	return mapStructuredData, nil

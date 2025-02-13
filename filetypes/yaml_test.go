@@ -18,7 +18,8 @@ type mockFile struct {
 type mockDecrypter struct{}
 
 func (m mockDecrypter) Decrypt(data []byte) ([]byte, error) {
-	return data, nil
+	// Return a known "decrypted" state
+	return []byte(`decrypted_key: decrypted_value`), nil
 }
 
 type erroringDecrypter struct{}
@@ -103,9 +104,7 @@ sops:
 			decrypter:   mockDecrypter{},
 			expectError: false,
 			expectMap: map[string]any{
-				"data": map[string]any{
-					"api_key": "ENC[AES256_GCM,data:abc123]",
-				},
+				"decrypted_key": "decrypted_value",
 			},
 		},
 		{
