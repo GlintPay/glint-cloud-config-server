@@ -20,9 +20,8 @@ func FromYamlToMap(f backend.File) (map[string]any, error) {
 		decrypted, err := sops.DecryptYAML(bytes)
 		if err != nil {
 			return nil, err
-		} else {
-			bytes = decrypted
 		}
+		bytes = decrypted
 	}
 
 	var mapStructuredData map[string]any
