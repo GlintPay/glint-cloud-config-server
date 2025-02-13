@@ -16,10 +16,6 @@ type YamlContext struct {
 	Decrypter
 }
 
-type Decrypter interface {
-	Decrypt(data []byte) ([]byte, error)
-}
-
 type SopsDecrypter struct {
 }
 
