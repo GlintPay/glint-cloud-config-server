@@ -45,7 +45,7 @@ func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []
 
 	sourceNames := getPropertySourceNames(rawSource.PropertySources)
 
-	var listsToRemove []map[string]interface{}
+	var listsToRemove []map[string]any
 	if f.flattenedStructure {
 		listsToRemove = findCompletelyReplacedFlattenedLists(rawSource.PropertySources)
 	}
@@ -83,7 +83,7 @@ func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []
 	}, nil
 }
 
-func (f *Resolver) overrideValue(reconciled map[string]interface{}, k string, v interface{}, source string) {
+func (f *Resolver) overrideValue(reconciled map[string]any, k string, v any, source string) {
 	if reconciled[k] == nil {
 		reconciled[k] = v
 		return
@@ -93,8 +93,8 @@ func (f *Resolver) overrideValue(reconciled map[string]interface{}, k string, v 
 
 	// Special treatment for Maps
 	if vKind == reflect.Map {
-		m := reconciled[k].(map[string]interface{})
-		for ck, cv := range v.(map[string]interface{}) {
+		m := reconciled[k].(map[string]any)
+		for ck, cv := range v.(map[string]any) {
 			m[ck] = cv
 		}
 		return
@@ -122,7 +122,7 @@ func (f *Resolver) newPropertiesResolverGetter(applicationNames []string, profil
 			return &PropertiesResolver{
 				data:           r,
 				templateConfig: f.templateConfig.Validate(),
-				templatesData: map[string]interface{}{
+				templatesData: map[string]any{
 					"Applications": applicationNames,
 					"Profiles":     profileNames,
 				},

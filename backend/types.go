@@ -35,7 +35,7 @@ type File interface {
 
 	IsReadable() (bool, string)
 	Data() Blob
-	ToMap() (map[string]interface{}, error)
+	ToMap() (map[string]any, error)
 }
 
 type Blob interface {

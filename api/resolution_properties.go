@@ -22,7 +22,7 @@ type PropertiesResolver struct {
 	messages []string
 
 	templateConfig config.GoTemplate
-	templatesData  map[string]interface{}
+	templatesData  map[string]any
 }
 
 var placeholderRegex = regexp.MustCompile(`\${([^}]*)}`)
@@ -31,19 +31,19 @@ func (pr *PropertiesResolver) resolvePlaceholdersFromTop() (ResolvedConfigValues
 	return pr.resolvePlaceholders(pr.data)
 }
 
-func (pr *PropertiesResolver) resolvePlaceholders(currentMap map[string]interface{}) (ResolvedConfigValues, error) {
+func (pr *PropertiesResolver) resolvePlaceholders(currentMap map[string]any) (ResolvedConfigValues, error) {
 	for propertyName, v := range currentMap {
 		switch typedVal := v.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			_, _ = pr.resolvePlaceholders(typedVal)
-		case []interface{}:
-			resolved := make([]interface{}, len(typedVal))
+		case []any:
+			resolved := make([]any, len(typedVal))
 			stack := newStack()
 			for i, eachUnresolved := range typedVal {
 				switch typed := eachUnresolved.(type) {
 				case string:
 					resolved[i] = pr.resolveString(currentMap, propertyName, typed, stack)
-				case map[string]interface{}:
+				case map[string]any:
 					_, _ = pr.resolvePlaceholders(typed) // ignore results
 					resolved[i] = typed
 				default:
@@ -68,7 +68,7 @@ var customFuncs = template.FuncMap{
 }
 
 // TODO Should missing properties be a configurable fatal error?
-func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, propertyName string, value string, stack map[string]interface{}) string {
+func (pr *PropertiesResolver) resolveString(currentMap map[string]any, propertyName string, value string, stack map[string]any) string {
 	goTemplatesResult := value
 
 	// Look for possible Go templates
@@ -146,7 +146,7 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]interface{}, p
 	return propertiesResult
 }
 
-func (pr *PropertiesResolver) resolvePropertyName(name string) (interface{}, bool) {
+func (pr *PropertiesResolver) resolvePropertyName(name string) (any, bool) {
 	val, ok := pr.data[name]
 	return val, ok
 }
@@ -155,12 +155,12 @@ func (pr *PropertiesResolver) getPropertyClauseFromMatch(match string) []string 
 	return strings.Split(strings.TrimSpace(match[2:len(match)-1]), ":")
 }
 
-func (pr *PropertiesResolver) addMessage(format string, v ...interface{}) {
+func (pr *PropertiesResolver) addMessage(format string, v ...any) {
 	msg := fmt.Sprintf(format, v...)
 	pr.messages = append(pr.messages, msg)
 	log.Warn().Msg(msg)
 }
 
-func newStack() map[string]interface{} {
-	return map[string]interface{}{}
+func newStack() map[string]any {
+	return map[string]any{}
 }
