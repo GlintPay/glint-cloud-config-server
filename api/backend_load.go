@@ -159,6 +159,7 @@ func newDiscoveryHandler(req ConfigurationRequest, source *Source) discoveryHand
 			Name:   f.FullyQualifiedName(),
 			Source: mapStructuredData,
 		}
+		//fmt.Println("==>", ps)
 
 		source.PropertySources = append(source.PropertySources, ps)
 		return nil
@@ -166,22 +167,44 @@ func newDiscoveryHandler(req ConfigurationRequest, source *Source) discoveryHand
 }
 
 func flattenedIndexedLists(data map[string]any) {
-	for k, v := range data {
-		switch typed := v.(type) {
-		case []any:
-			{
-				// FIXME Empty list?
-				for i, val := range typed {
-					newKey := fmt.Sprintf("%s[%d]", k, i)
-					data[newKey] = val
+	// First pass: collect all arrays to flatten
+	type arrayToFlatten struct {
+		key   string
+		array []any
+	}
+	var arraysToFlatten []arrayToFlatten
 
-					switch typedMap := val.(type) {
-					case map[string]any:
-						flattenedIndexedLists(typedMap)
-					}
-				}
-				delete(data, k) // remove original
+	for k, v := range data {
+		if arr, ok := v.([]any); ok {
+			arraysToFlatten = append(arraysToFlatten, arrayToFlatten{key: k, array: arr})
+		}
+	}
+	fmt.Println("==>", arraysToFlatten)
+
+	// Second pass: flatten all collected arrays
+	var mapsToProcess []map[string]any
+
+	for _, item := range arraysToFlatten {
+		k := item.key
+		arr := item.array
+
+		// Handle each element in the array
+		for i, val := range arr {
+			newKey := fmt.Sprintf("%s[%d]", k, i)
+			data[newKey] = val
+
+			// Collect nested maps for later processing
+			if nestedMap, ok := val.(map[string]any); ok {
+				mapsToProcess = append(mapsToProcess, nestedMap)
 			}
 		}
+
+		// Remove the original array
+		delete(data, k)
+	}
+
+	// Final pass: process all nested maps we collected
+	for _, nestedMap := range mapsToProcess {
+		flattenedIndexedLists(nestedMap)
 	}
 }
