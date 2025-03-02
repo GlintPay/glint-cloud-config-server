@@ -179,7 +179,6 @@ func flattenedIndexedLists(data map[string]any) {
 			arraysToFlatten = append(arraysToFlatten, arrayToFlatten{key: k, array: arr})
 		}
 	}
-	fmt.Println("==>", arraysToFlatten)
 
 	// Second pass: flatten all collected arrays
 	var mapsToProcess []map[string]any
