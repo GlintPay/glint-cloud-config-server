@@ -159,7 +159,6 @@ func newDiscoveryHandler(req ConfigurationRequest, source *Source) discoveryHand
 			Name:   f.FullyQualifiedName(),
 			Source: mapStructuredData,
 		}
-		//fmt.Println("==>", ps)
 
 		source.PropertySources = append(source.PropertySources, ps)
 		return nil
