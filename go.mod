@@ -1,6 +1,6 @@
 module github.com/GlintPay/gccs
 
-go 1.23.6
+go 1.24
 
 require (
 	codnect.io/chrono v1.1.3
@@ -15,7 +15,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/riandyrn/otelchi v0.12.1
-	github.com/rs/zerolog v1.33.0
+	github.com/rs/zerolog v1.34.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.10.0
 	github.com/wolfeidau/unflatten v1.1.0
