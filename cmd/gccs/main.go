@@ -63,6 +63,8 @@ func main() {
 		if e != nil {
 			log.Fatal().Stack().Err(e).Msg("K8s resolver setup failed")
 		}
+	} else {
+		log.Info().Msg("K8s secret/configmap resolver disabled")
 	}
 
 	////////////////////////////////////////////
