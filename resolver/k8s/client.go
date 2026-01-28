@@ -82,7 +82,7 @@ func (c *Client) GetSecretValue(ctx context.Context, namespace, name, key string
 		}
 	}
 
-	log.Debug().Msgf("Fetching K8s secret [%s/%s] with key %s ...", namespace, name, key)
+	log.Debug().Msgf("Fetching K8s secret [%s/%s] with key [%s]...", namespace, name, key)
 	secret, err := c.clientset.CoreV1().Secrets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return "", false, fmt.Errorf("failed to get secret %s/%s: %w", namespace, name, err)
@@ -121,7 +121,7 @@ func (c *Client) GetConfigMapValue(ctx context.Context, namespace, name, key str
 		}
 	}
 
-	log.Debug().Msgf("Fetching K8s configmap [%s/%s] with key %s ...", namespace, name, key)
+	log.Debug().Msgf("Fetching K8s configmap [%s/%s] with key [%s]...", namespace, name, key)
 	configMap, err := c.clientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return "", false, fmt.Errorf("failed to get configmap %s/%s: %w", namespace, name, err)
