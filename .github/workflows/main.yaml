@@ -19,21 +19,20 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: Set Go bin path
-        run: |
-            echo "/usr/local/go/bin" >> $GITHUB_PATH
-            echo "GOROOT=/usr/local/go" >> $GITHUB_ENV
-            echo "$GOPATH/bin" >> $GITHUB_PATH
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'  # or your version
 
-      - name: Set Go tools for 1.25
+      - name: Build and install covdata tool
         run: |
-            TOOL=covdata && \
-            TOOLDIR=$GOROOT/pkg/tool/linux_amd64 && \
-            go build -o /tmp/$TOOL cmd/$TOOL && \
-            mkdir -p $TOOLDIR && \
-            cp /tmp/$TOOL $TOOLDIR/$TOOL && \
-            chmod +x $TOOLDIR/$TOOL && \
-            file $TOOLDIR/$TOOL
+          TOOL=covdata
+          TOOLDIR=$(go env GOROOT)/pkg/tool/linux_amd64
+          go build -o /tmp/$TOOL cmd/$TOOL
+          mkdir -p $TOOLDIR
+          cp /tmp/$TOOL $TOOLDIR/$TOOL
+          chmod +x $TOOLDIR/$TOOL
+          file $TOOLDIR/$TOOL
 
       - name: Run tests
         run: make test-with-coverage
