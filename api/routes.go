@@ -232,11 +232,12 @@ func (rtr *Routing) newResolver(req ConfigurationRequest) Resolvable {
 }
 
 func overrideBooleanDefault(queryValue string, defaultVal bool) bool {
-	reqVal := strings.ToLower(queryValue)
-	if reqVal == "true" {
+	switch strings.ToLower(queryValue) {
+	case "true":
 		return true
-	} else if reqVal == "false" {
+	case "false":
 		return false
+	default:
+		return defaultVal
 	}
-	return defaultVal
 }
