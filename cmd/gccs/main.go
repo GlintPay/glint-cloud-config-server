@@ -58,7 +58,7 @@ func main() {
 
 	var k8sResolver *k8s.Resolver
 	var e error
-	if !appConfig.Kubernetes.Disabled {
+	if appConfig.Kubernetes.Enabled {
 		k8sResolver, e = setupK8sResolver(appConfig.Kubernetes)
 		if e != nil {
 			log.Fatal().Stack().Err(e).Msg("K8s resolver setup failed")
