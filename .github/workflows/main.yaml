@@ -11,10 +11,10 @@ jobs:
 
     steps:
       - name: Check out repo repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
@@ -33,7 +33,7 @@ jobs:
           docker push glintpay/glint-cloud-config-server:${{ github.run_number }}
 
       - name: Announce new image
-        uses: peter-evans/repository-dispatch@v2
+        uses: peter-evans/repository-dispatch@v3
         with:
           repository: GlintPay/glint-cloud-config-server-deploy
           token: ${{ secrets.GLINT_PRIVATE_ACCESS_SECRET }}
