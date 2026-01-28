@@ -108,19 +108,7 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]any, propertyN
 
 		// Check for K8s placeholders first (before splitting on colon)
 		if pr.k8sResolver != nil && pr.k8sResolver.CanResolve(placeholderContent) {
-			k8sPlaceholder, defaultValue := pr.parseK8sPlaceholderWithDefault(placeholderContent)
-			if val, ok, err := pr.k8sResolver.Resolve(pr.ctx, k8sPlaceholder); err != nil {
-				pr.error = err
-				return UnresolvedPropertyResult
-			} else if ok {
-				return val
-			}
-			// Not found - use default if available
-			if defaultValue != "" {
-				return defaultValue
-			}
-			pr.addMessage("Missing K8s value for [%s]", k8sPlaceholder)
-			return UnresolvedPropertyResult
+			return pr.resolveK8sPlaceholder(placeholderContent)
 		}
 
 		// Standard property placeholder handling
@@ -180,6 +168,25 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]any, propertyN
 func (pr *PropertiesResolver) resolvePropertyName(name string) (any, bool) {
 	val, ok := pr.data[name]
 	return val, ok
+}
+
+// resolveK8sPlaceholder handles resolution of K8s secret/configmap placeholders.
+func (pr *PropertiesResolver) resolveK8sPlaceholder(placeholderContent string) string {
+	k8sPlaceholder, defaultValue := pr.parseK8sPlaceholderWithDefault(placeholderContent)
+	val, ok, err := pr.k8sResolver.Resolve(pr.ctx, k8sPlaceholder)
+	if err != nil {
+		pr.error = err
+		return UnresolvedPropertyResult
+	}
+	if ok {
+		return val
+	}
+	// Not found - use default if available
+	if defaultValue != "" {
+		return defaultValue
+	}
+	pr.addMessage("Missing K8s value for [%s]", k8sPlaceholder)
+	return UnresolvedPropertyResult
 }
 
 func (pr *PropertiesResolver) getPropertyClauseFromMatch(match string) []string {
