@@ -3,12 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"os"
+
 	"github.com/GlintPay/gccs/api"
 	"github.com/GlintPay/gccs/backend"
 	"github.com/GlintPay/gccs/backend/setup"
 	"github.com/GlintPay/gccs/config"
 	"github.com/GlintPay/gccs/health"
 	"github.com/GlintPay/gccs/logging"
+	"github.com/GlintPay/gccs/resolver/k8s"
 	"github.com/GlintPay/gccs/utils"
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
@@ -23,8 +27,6 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 	"golang.org/x/sync/errgroup"
-	"net/http"
-	"os"
 	"sigs.k8s.io/yaml"
 )
 
@@ -54,13 +56,25 @@ func main() {
 
 	////////////////////////////////////////////
 
-	traceShutdown, e := setupTracing(ctx, appConfig)
+	var k8sResolver *k8s.Resolver
+	var e error
+	if !appConfig.Kubernetes.Disabled {
+		k8sResolver, e = setupK8sResolver(appConfig.Kubernetes)
+		if e != nil {
+			log.Fatal().Stack().Err(e).Msg("K8s resolver setup failed")
+		}
+	}
+
+	////////////////////////////////////////////
+
+	var traceShutdown func()
+	traceShutdown, e = setupTracing(ctx, appConfig)
 	if e != nil {
 		log.Fatal().Stack().Err(e).Msg("Trace setup failed")
 	}
 	defer traceShutdown()
 
-	router := setupRouter(appConfig, backends)
+	router := setupRouter(appConfig, backends, k8sResolver)
 	setupHealthCheck(router)
 
 	////////////////////////////////////////////
@@ -144,7 +158,16 @@ func setupTracing(ctx context.Context, config config.ApplicationConfiguration) (
 	}, nil
 }
 
-func setupRouter(config config.ApplicationConfiguration, backends backend.Backends) *chi.Mux {
+func setupK8sResolver(cfg config.K8sConfig) (*k8s.Resolver, error) {
+	client, err := k8s.NewClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+	log.Info().Msg("K8s secret/configmap resolver enabled")
+	return k8s.NewResolver(client, cfg), nil
+}
+
+func setupRouter(config config.ApplicationConfiguration, backends backend.Backends, k8sResolver *k8s.Resolver) *chi.Mux {
 	router := chi.NewRouter()
 	router.Use(middleware.StripSlashes)
 
@@ -152,8 +175,9 @@ func setupRouter(config config.ApplicationConfiguration, backends backend.Backen
 		ServerName:   serviceName,
 		ParentRouter: router,
 
-		Backends:  backends,
-		AppConfig: config,
+		Backends:    backends,
+		AppConfig:   config,
+		K8sResolver: k8sResolver,
 	}
 
 	router.Route("/", func(r chi.Router) {
