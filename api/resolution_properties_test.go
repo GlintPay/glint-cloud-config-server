@@ -341,3 +341,83 @@ func deepCopyViaJSON(src map[string]any, dest map[string]any) error {
 	}
 	return nil
 }
+
+func Test_parseK8sPlaceholderWithDefault(t *testing.T) {
+	pr := &PropertiesResolver{}
+
+	tests := []struct {
+		name            string
+		placeholder     string
+		wantPlaceholder string
+		wantDefault     string
+	}{
+		{
+			name:            "secret with 3 segments, no default",
+			placeholder:     "k8s/secret:backend/hubspot-api/api-key",
+			wantPlaceholder: "k8s/secret:backend/hubspot-api/api-key",
+			wantDefault:     "",
+		},
+		{
+			name:            "secret with 3 segments and default",
+			placeholder:     "k8s/secret:backend/hubspot-api/api-key:my-default-value",
+			wantPlaceholder: "k8s/secret:backend/hubspot-api/api-key",
+			wantDefault:     "my-default-value",
+		},
+		{
+			name:            "secret with 2 segments (default namespace), no default",
+			placeholder:     "k8s/secret:hubspot-api/api-key",
+			wantPlaceholder: "k8s/secret:hubspot-api/api-key",
+			wantDefault:     "",
+		},
+		{
+			name:            "secret with 2 segments (default namespace) and default",
+			placeholder:     "k8s/secret:hubspot-api/api-key:fallback",
+			wantPlaceholder: "k8s/secret:hubspot-api/api-key",
+			wantDefault:     "fallback",
+		},
+		{
+			name:            "configmap with 3 segments, no default",
+			placeholder:     "k8s/configmap:backend/logging/level",
+			wantPlaceholder: "k8s/configmap:backend/logging/level",
+			wantDefault:     "",
+		},
+		{
+			name:            "configmap with 3 segments and default",
+			placeholder:     "k8s/configmap:backend/logging/level:INFO",
+			wantPlaceholder: "k8s/configmap:backend/logging/level",
+			wantDefault:     "INFO",
+		},
+		{
+			name:            "not a k8s placeholder",
+			placeholder:     "some.regular.property",
+			wantPlaceholder: "some.regular.property",
+			wantDefault:     "",
+		},
+		{
+			name:            "empty default value",
+			placeholder:     "k8s/secret:ns/name/key:",
+			wantPlaceholder: "k8s/secret:ns/name/key",
+			wantDefault:     "",
+		},
+		{
+			name:            "k8s/cm shorthand with 3 segments, no default",
+			placeholder:     "k8s/cm:backend/logging/level",
+			wantPlaceholder: "k8s/cm:backend/logging/level",
+			wantDefault:     "",
+		},
+		{
+			name:            "k8s/cm shorthand with 3 segments and default",
+			placeholder:     "k8s/cm:backend/logging/level:INFO",
+			wantPlaceholder: "k8s/cm:backend/logging/level",
+			wantDefault:     "INFO",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotPlaceholder, gotDefault := pr.parseK8sPlaceholderWithDefault(tt.placeholder)
+			assert.Equal(t, tt.wantPlaceholder, gotPlaceholder)
+			assert.Equal(t, tt.wantDefault, gotDefault)
+		})
+	}
+}

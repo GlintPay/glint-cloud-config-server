@@ -3,16 +3,18 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"github.com/GlintPay/gccs/backend"
-	"github.com/GlintPay/gccs/config"
-	"github.com/GlintPay/gccs/utils"
-	"github.com/go-chi/chi/v5"
-	"github.com/riandyrn/otelchi"
-	"github.com/rs/zerolog/log"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/GlintPay/gccs/backend"
+	"github.com/GlintPay/gccs/config"
+	"github.com/GlintPay/gccs/resolver/k8s"
+	"github.com/GlintPay/gccs/utils"
+	"github.com/go-chi/chi/v5"
+	"github.com/riandyrn/otelchi"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -23,8 +25,9 @@ type Routing struct {
 	ServerName   string
 	ParentRouter chi.Router
 
-	AppConfig config.ApplicationConfiguration
-	Backends  backend.Backends
+	AppConfig   config.ApplicationConfiguration
+	Backends    backend.Backends
+	K8sResolver *k8s.Resolver
 
 	resolverGetter func() Resolvable
 }
@@ -220,6 +223,7 @@ func (rtr *Routing) newResolver(req ConfigurationRequest) Resolvable {
 				flattenedStructure: req.FlattenedIndexedLists,
 				templateConfig:     rtr.AppConfig.Gotemplate,
 				enableTrace:        rtr.AppConfig.Tracing.Enabled,
+				k8sResolver:        rtr.K8sResolver,
 			}
 		}
 	}
@@ -228,11 +232,12 @@ func (rtr *Routing) newResolver(req ConfigurationRequest) Resolvable {
 }
 
 func overrideBooleanDefault(queryValue string, defaultVal bool) bool {
-	reqVal := strings.ToLower(queryValue)
-	if reqVal == "true" {
+	switch strings.ToLower(queryValue) {
+	case "true":
 		return true
-	} else if reqVal == "false" {
+	case "false":
 		return false
+	default:
+		return defaultVal
 	}
-	return defaultVal
 }

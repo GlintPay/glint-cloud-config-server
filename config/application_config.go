@@ -10,6 +10,7 @@ type ApplicationConfiguration struct {
 	Prometheus Prometheus
 	File       FileConfig
 	Git        GitConfig
+	Kubernetes K8sConfig
 	Defaults   Defaults
 	Tracing    Tracing
 	Gotemplate GoTemplate

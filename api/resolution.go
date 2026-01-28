@@ -2,13 +2,15 @@ package api
 
 import (
 	"context"
-	"github.com/GlintPay/gccs/config"
-	gotel "github.com/GlintPay/gccs/otel"
-	"github.com/GlintPay/gccs/utils"
-	"github.com/rs/zerolog/log"
 	"reflect"
 	"sort"
 	"strings"
+
+	"github.com/GlintPay/gccs/config"
+	gotel "github.com/GlintPay/gccs/otel"
+	"github.com/GlintPay/gccs/resolver/k8s"
+	"github.com/GlintPay/gccs/utils"
+	"github.com/rs/zerolog/log"
 )
 
 type Resolvable interface {
@@ -20,7 +22,8 @@ type Resolver struct {
 	templateConfig           config.GoTemplate
 	enableTrace              bool
 	pointlessOverrides       []duplicate
-	propertiesResolverGetter func(ResolvedConfigValues) PropertiesResolvable
+	k8sResolver              *k8s.Resolver
+	propertiesResolverGetter func(context.Context, ResolvedConfigValues) PropertiesResolvable
 }
 
 func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []string, profileNames []string, injections InjectedProperties, rawSource *Source) (ResolvedConfigValues, ResolutionMetadata, error) {
@@ -62,7 +65,7 @@ func (f *Resolver) ReconcileProperties(ctxt context.Context, applicationNames []
 	}
 
 	// Handle embedded references: ${propertyName} and ${propertyName:defaultValueIfMissing}. NB. Blank values don't trigger default.
-	rr := f.newPropertiesResolverGetter(applicationNames, profileNames, reconciled)
+	rr := f.newPropertiesResolverGetter(ctxt, applicationNames, profileNames, reconciled)
 	if _, e := rr.resolvePlaceholdersFromTop(); e != nil {
 		return reconciled, ResolutionMetadata{}, e
 	}
@@ -116,21 +119,23 @@ func (f *Resolver) overrideValue(reconciled map[string]any, k string, v any, sou
 	}
 }
 
-func (f *Resolver) newPropertiesResolverGetter(applicationNames []string, profileNames []string, vals ResolvedConfigValues) PropertiesResolvable {
+func (f *Resolver) newPropertiesResolverGetter(ctx context.Context, applicationNames []string, profileNames []string, vals ResolvedConfigValues) PropertiesResolvable {
 	if f.propertiesResolverGetter == nil {
-		f.propertiesResolverGetter = func(r ResolvedConfigValues) PropertiesResolvable {
+		f.propertiesResolverGetter = func(ctx context.Context, r ResolvedConfigValues) PropertiesResolvable {
 			return &PropertiesResolver{
+				ctx:            ctx,
 				data:           r,
 				templateConfig: f.templateConfig.Validate(),
 				templatesData: map[string]any{
 					"Applications": applicationNames,
 					"Profiles":     profileNames,
 				},
+				k8sResolver: f.k8sResolver,
 			}
 		}
 	}
 
-	return f.propertiesResolverGetter(vals)
+	return f.propertiesResolverGetter(ctx, vals)
 }
 
 func getPropertySourceNames(sources []PropertySource) string {

@@ -1,13 +1,16 @@
 package api
 
 import (
+	"context"
 	"fmt"
+	"strings"
+	"text/template"
+
 	"github.com/GlintPay/gccs/config"
+	"github.com/GlintPay/gccs/resolver/k8s"
 	"github.com/Masterminds/sprig"
 	"github.com/rs/zerolog/log"
 	"regexp"
-	"strings"
-	"text/template"
 )
 
 const UnresolvedPropertyResult = ""
@@ -17,12 +20,14 @@ type PropertiesResolvable interface {
 }
 
 type PropertiesResolver struct {
+	ctx      context.Context
 	data     ResolvedConfigValues
 	error    error
 	messages []string
 
 	templateConfig config.GoTemplate
 	templatesData  map[string]any
+	k8sResolver    *k8s.Resolver
 }
 
 var placeholderRegex = regexp.MustCompile(`\${([^}]*)}`)
@@ -93,6 +98,20 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]any, propertyN
 	}
 
 	propertiesResult := placeholderRegex.ReplaceAllStringFunc(goTemplatesResult, func(foundMatch string) string {
+		// Extract the content between ${ and }
+		placeholderContent := strings.TrimSpace(foundMatch[2 : len(foundMatch)-1])
+		if placeholderContent == "" {
+			// ${} is not acceptable
+			pr.addMessage("Missing placeholder [%s] for property [%s]", foundMatch, propertyName)
+			return UnresolvedPropertyResult
+		}
+
+		// Check for K8s placeholders first (before splitting on colon)
+		if pr.k8sResolver != nil && pr.k8sResolver.CanResolve(placeholderContent) {
+			return pr.resolveK8sPlaceholder(placeholderContent)
+		}
+
+		// Standard property placeholder handling
 		sourcePropertyWithDefault := pr.getPropertyClauseFromMatch(foundMatch)
 		if sourcePropertyWithDefault[0] == "" {
 			// ${} is not acceptable
@@ -151,8 +170,60 @@ func (pr *PropertiesResolver) resolvePropertyName(name string) (any, bool) {
 	return val, ok
 }
 
+// resolveK8sPlaceholder handles resolution of K8s secret/configmap placeholders.
+func (pr *PropertiesResolver) resolveK8sPlaceholder(placeholderContent string) string {
+	k8sPlaceholder, defaultValue := pr.parseK8sPlaceholderWithDefault(placeholderContent)
+	val, ok, err := pr.k8sResolver.Resolve(pr.ctx, k8sPlaceholder)
+	if err != nil {
+		pr.error = err
+		return UnresolvedPropertyResult
+	}
+	if ok {
+		return val
+	}
+	// Not found - use default if available
+	if defaultValue != "" {
+		return defaultValue
+	}
+	pr.addMessage("Missing K8s value for [%s]", k8sPlaceholder)
+	return UnresolvedPropertyResult
+}
+
 func (pr *PropertiesResolver) getPropertyClauseFromMatch(match string) []string {
 	return strings.Split(strings.TrimSpace(match[2:len(match)-1]), ":")
+}
+
+// parseK8sPlaceholderWithDefault handles K8s placeholders which have the format:
+// k8s/secret:namespace/name/key or k8s/secret:namespace/name/key:defaultValue
+// The colon after secret/configmap/cm is part of the prefix, but a trailing colon indicates a default.
+func (pr *PropertiesResolver) parseK8sPlaceholderWithDefault(placeholder string) (string, string) {
+	// Find the prefix (k8s/secret:, k8s/configmap:, or k8s/cm:)
+	var prefixEnd int
+	if strings.HasPrefix(placeholder, k8s.PrefixK8sSecret) {
+		prefixEnd = len(k8s.PrefixK8sSecret)
+	} else if strings.HasPrefix(placeholder, k8s.PrefixK8sConfigMap) {
+		prefixEnd = len(k8s.PrefixK8sConfigMap)
+	} else if strings.HasPrefix(placeholder, k8s.PrefixK8sConfigMapCM) {
+		prefixEnd = len(k8s.PrefixK8sConfigMapCM)
+	} else {
+		return placeholder, ""
+	}
+
+	// The rest is path:default (where default is optional)
+	rest := placeholder[prefixEnd:]
+	if idx := strings.LastIndex(rest, ":"); idx != -1 {
+		// Check if this colon separates path from default value
+		// Path format is: namespace/name/key or name/key (2-3 segments separated by /)
+		pathPart := rest[:idx]
+		segments := strings.Count(pathPart, "/")
+		if segments >= 1 && segments <= 2 {
+			// Valid path, so the colon separates path from default
+			return placeholder[:prefixEnd] + pathPart, rest[idx+1:]
+		}
+	}
+
+	// No default value
+	return placeholder, ""
 }
 
 func (pr *PropertiesResolver) addMessage(format string, v ...any) {

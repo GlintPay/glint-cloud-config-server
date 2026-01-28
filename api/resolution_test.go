@@ -327,7 +327,7 @@ func Test_badPropertiesResolver(t *testing.T) {
 	source := Source{Name: "test-app"}
 
 	resolver := Resolver{}
-	resolver.propertiesResolverGetter = func(ResolvedConfigValues) PropertiesResolvable {
+	resolver.propertiesResolverGetter = func(context.Context, ResolvedConfigValues) PropertiesResolvable {
 		return badPropertiesResolverGetter{}
 	}
 
