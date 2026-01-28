@@ -20,7 +20,9 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Set Go bin path
-        run: echo "/usr/local/go/bin" >> $GITHUB_PATH
+        run: |
+            echo "/usr/local/go/bin" >> $GITHUB_PATH
+            echo "/usr/local/go" >> $GOROOT
 
       - name: Set Go tools for 1.25
         run: |
