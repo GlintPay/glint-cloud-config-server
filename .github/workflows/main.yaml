@@ -22,12 +22,11 @@ jobs:
       - name: Set Go bin path
         run: |
             echo "/usr/local/go/bin" >> $GITHUB_PATH
-            echo "/usr/local/go" >> $GOROOT
 
       - name: Set Go tools for 1.25
         run: |
             TOOL=covdata && \
-            TOOLDIR=$GOROOT/pkg/tool/linux_amd64 && \
+            TOOLDIR=$/usr/local/go/pkg/tool/linux_amd64 && \
             go build -o /tmp/$TOOL cmd/$TOOL && \
             mkdir -p $TOOLDIR && \
             cp /tmp/$TOOL $TOOLDIR/$TOOL && \
