@@ -8,9 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestResolver_CanResolve(t *testing.T) {
-	resolver := &Resolver{config: config.K8sConfig{}}
-
+func TestIsK8sPlaceholder(t *testing.T) {
 	tests := []struct {
 		placeholder string
 		expected    bool
@@ -28,7 +26,7 @@ func TestResolver_CanResolve(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.placeholder, func(t *testing.T) {
-			result := resolver.CanResolve(tt.placeholder)
+			result := IsK8sPlaceholder(tt.placeholder)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -146,7 +144,7 @@ type testableResolver struct {
 }
 
 func (r *testableResolver) CanResolve(placeholder string) bool {
-	return (&Resolver{config: r.config}).CanResolve(placeholder)
+	return IsK8sPlaceholder(placeholder)
 }
 
 func (r *testableResolver) Resolve(ctx context.Context, placeholder string) (string, bool, error) {

@@ -107,7 +107,11 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]any, propertyN
 		}
 
 		// Check for K8s placeholders first (before splitting on colon)
-		if pr.k8sResolver != nil && pr.k8sResolver.CanResolve(placeholderContent) {
+		if k8s.IsK8sPlaceholder(placeholderContent) {
+			if pr.k8sResolver == nil {
+				pr.error = fmt.Errorf("K8s placeholder found but K8s resolver is not available: ${%s}", placeholderContent)
+				return UnresolvedPropertyResult
+			}
 			return pr.resolveK8sPlaceholder(placeholderContent)
 		}
 

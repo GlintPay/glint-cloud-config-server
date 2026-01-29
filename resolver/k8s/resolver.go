@@ -26,8 +26,8 @@ func NewResolver(client *Client, cfg config.K8sConfig) *Resolver {
 	}
 }
 
-// CanResolve checks if the placeholder starts with a k8s prefix
-func (r *Resolver) CanResolve(placeholder string) bool {
+// IsK8sPlaceholder checks if the placeholder starts with a k8s prefix (does not require an instance)
+func IsK8sPlaceholder(placeholder string) bool {
 	return strings.HasPrefix(placeholder, PrefixK8sSecret) ||
 		strings.HasPrefix(placeholder, PrefixK8sConfigMap) ||
 		strings.HasPrefix(placeholder, PrefixK8sConfigMapCM)
