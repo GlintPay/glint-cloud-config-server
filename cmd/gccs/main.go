@@ -61,7 +61,7 @@ func main() {
 	if appConfig.Kubernetes.Enabled {
 		k8sResolver, e = setupK8sResolver(appConfig.Kubernetes)
 		if e != nil {
-			log.Fatal().Stack().Err(e).Msg("K8s resolver setup failed")
+			log.Warn().Err(e).Msg("K8s resolver setup failed; K8s placeholders will return errors")
 		}
 	} else {
 		log.Info().Msg("K8s secret/configmap resolver disabled")
