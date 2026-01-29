@@ -40,6 +40,7 @@ func TestResolver_parsePath(t *testing.T) {
 		wantNamespace    string
 		wantName         string
 		wantKey          string
+		wantSubKeys      []string
 		wantErr          bool
 	}{
 		{
@@ -49,7 +50,7 @@ func TestResolver_parsePath(t *testing.T) {
 			wantNamespace:    "backend",
 			wantName:         "hubspot-api",
 			wantKey:          "api-key",
-			wantErr:          false,
+			wantSubKeys:      nil,
 		},
 		{
 			name:             "two segments - uses default namespace",
@@ -58,7 +59,25 @@ func TestResolver_parsePath(t *testing.T) {
 			wantNamespace:    "default",
 			wantName:         "hubspot-api",
 			wantKey:          "api-key",
-			wantErr:          false,
+			wantSubKeys:      nil,
+		},
+		{
+			name:             "four segments - namespace/name/key/subkey",
+			path:             "backend/cluster-info/values/servicesHost",
+			defaultNamespace: "default",
+			wantNamespace:    "backend",
+			wantName:         "cluster-info",
+			wantKey:          "values",
+			wantSubKeys:      []string{"servicesHost"},
+		},
+		{
+			name:             "five segments - namespace/name/key/sub1/sub2",
+			path:             "backend/cluster-info/values/environment/name",
+			defaultNamespace: "default",
+			wantNamespace:    "backend",
+			wantName:         "cluster-info",
+			wantKey:          "values",
+			wantSubKeys:      []string{"environment", "name"},
 		},
 		{
 			name:             "two segments - no default namespace configured",
@@ -69,12 +88,6 @@ func TestResolver_parsePath(t *testing.T) {
 		{
 			name:             "one segment - invalid",
 			path:             "just-one",
-			defaultNamespace: "default",
-			wantErr:          true,
-		},
-		{
-			name:             "four segments - invalid",
-			path:             "a/b/c/d",
 			defaultNamespace: "default",
 			wantErr:          true,
 		},
@@ -94,7 +107,7 @@ func TestResolver_parsePath(t *testing.T) {
 				},
 			}
 
-			ns, name, key, err := resolver.parsePath(tt.path)
+			ns, name, key, subKeys, err := resolver.parsePath(tt.path)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -103,6 +116,67 @@ func TestResolver_parsePath(t *testing.T) {
 				assert.Equal(t, tt.wantNamespace, ns)
 				assert.Equal(t, tt.wantName, name)
 				assert.Equal(t, tt.wantKey, key)
+				assert.Equal(t, tt.wantSubKeys, subKeys)
+			}
+		})
+	}
+}
+
+func TestNavigateYAML(t *testing.T) {
+	yamlContent := `environment:
+  name: production-eu,production,eu
+servicesHost: services.prod.glintpay.com
+dnsDiscriminator: .prod
+dataCentre: eu`
+
+	tests := []struct {
+		name      string
+		keys      []string
+		wantValue string
+		wantFound bool
+		wantErr   bool
+	}{
+		{
+			name:      "top-level string key",
+			keys:      []string{"servicesHost"},
+			wantValue: "services.prod.glintpay.com",
+			wantFound: true,
+		},
+		{
+			name:      "nested key",
+			keys:      []string{"environment", "name"},
+			wantValue: "production-eu,production,eu",
+			wantFound: true,
+		},
+		{
+			name:      "top-level key - dnsDiscriminator",
+			keys:      []string{"dnsDiscriminator"},
+			wantValue: ".prod",
+			wantFound: true,
+		},
+		{
+			name:      "missing key",
+			keys:      []string{"nonexistent"},
+			wantFound: false,
+		},
+		{
+			name:    "navigate into non-map",
+			keys:    []string{"servicesHost", "child"},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			value, found, err := navigateYAML(yamlContent, tt.keys)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.wantFound, found)
+				if found {
+					assert.Equal(t, tt.wantValue, value)
+				}
 			}
 		})
 	}
@@ -168,15 +242,25 @@ func (r *testableResolver) Resolve(ctx context.Context, placeholder string) (str
 	}
 
 	path := placeholder[len(prefix):]
-	namespace, name, key, err := baseResolver.parsePath(path)
+	namespace, name, key, subKeys, err := baseResolver.parsePath(path)
 	if err != nil {
 		return "", false, err
 	}
 
+	var value string
+	var found bool
+
 	if isSecret {
-		return r.mock.GetSecretValue(ctx, namespace, name, key)
+		value, found, err = r.mock.GetSecretValue(ctx, namespace, name, key)
+	} else {
+		value, found, err = r.mock.GetConfigMapValue(ctx, namespace, name, key)
 	}
-	return r.mock.GetConfigMapValue(ctx, namespace, name, key)
+
+	if err != nil || !found || len(subKeys) == 0 {
+		return value, found, err
+	}
+
+	return navigateYAML(value, subKeys)
 }
 
 func TestResolver_Resolve(t *testing.T) {
@@ -189,8 +273,9 @@ func TestResolver_Resolve(t *testing.T) {
 			"production/redis/auth-token":        "redis-token",
 		},
 		configMaps: map[string]string{
-			"backend/logging-config/level":       "DEBUG",
-			"default/feature-flags/enabled":      "true",
+			"backend/logging-config/level":  "DEBUG",
+			"default/feature-flags/enabled": "true",
+			"backend/cluster-info/values": "environment:\n  name: production-eu,production,eu\nservicesHost: services.prod.glintpay.com\ndnsDiscriminator: .prod\ndataCentre: eu\n",
 		},
 		errors: map[string]error{},
 	}
@@ -258,6 +343,27 @@ func TestResolver_Resolve(t *testing.T) {
 			wantValue:        "",
 			wantFound:        false,
 			wantErr:          false,
+		},
+		{
+			name:             "configmap with YAML sub-key navigation",
+			placeholder:      "k8s/cm:backend/cluster-info/values/servicesHost",
+			defaultNamespace: "default",
+			wantValue:        "services.prod.glintpay.com",
+			wantFound:        true,
+		},
+		{
+			name:             "configmap with nested YAML sub-key navigation",
+			placeholder:      "k8s/configmap:backend/cluster-info/values/environment/name",
+			defaultNamespace: "default",
+			wantValue:        "production-eu,production,eu",
+			wantFound:        true,
+		},
+		{
+			name:             "configmap YAML sub-key not found",
+			placeholder:      "k8s/cm:backend/cluster-info/values/nonexistent",
+			defaultNamespace: "default",
+			wantValue:        "",
+			wantFound:        false,
 		},
 		{
 			name:             "missing default namespace",
