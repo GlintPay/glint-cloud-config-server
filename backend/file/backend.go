@@ -3,22 +3,21 @@ package file
 import (
 	"context"
 	"errors"
-	"github.com/GlintPay/gccs/backend"
-	"github.com/GlintPay/gccs/config"
-	"github.com/GlintPay/gccs/filetypes"
-	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/GlintPay/gccs/backend"
+	"github.com/GlintPay/gccs/config"
+	"github.com/GlintPay/gccs/filetypes"
+	"github.com/rs/zerolog/log"
 )
 
 func (s *Backend) Init(_ context.Context, appConfig config.ApplicationConfiguration) error {
 	s.Config = appConfig.File
 
-	s.YamlContext = filetypes.YamlContext{
-		Decrypter: filetypes.SopsDecrypter{},
-	}
+	s.YamlContext = filetypes.YamlContext{}
 
 	log.Debug().Msgf("Reading from %s", s.Config.Path)
 	return nil

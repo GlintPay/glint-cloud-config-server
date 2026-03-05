@@ -2,7 +2,6 @@ package filetypes
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"testing"
 
@@ -13,19 +12,6 @@ import (
 type mockFile struct {
 	name    string
 	content []byte
-}
-
-type mockDecrypter struct{}
-
-func (m mockDecrypter) Decrypt(data []byte) ([]byte, error) {
-	// Return a known "decrypted" state
-	return []byte(`decrypted_key: decrypted_value`), nil
-}
-
-type erroringDecrypter struct{}
-
-func (m erroringDecrypter) Decrypt(data []byte) ([]byte, error) {
-	return nil, errors.New("error")
 }
 
 func (m mockFile) Name() string {
@@ -60,11 +46,10 @@ func (m mockBlob) Reader() (io.ReadCloser, error) {
 	return io.NopCloser(bytes.NewReader(m.content)), nil
 }
 
-func TestFromYamlToMapWithSops(t *testing.T) {
+func TestFromYamlToMap(t *testing.T) {
 	tests := []struct {
 		name        string
 		content     []byte
-		decrypter   Decrypter
 		expectError bool
 		expectMap   map[string]any
 	}{
@@ -75,8 +60,6 @@ foo: bar
 nested:
   value: test
 `),
-
-			decrypter:   mockDecrypter{},
 			expectError: false,
 			expectMap: map[string]any{
 				"foo": "bar",
@@ -86,52 +69,7 @@ nested:
 			},
 		},
 		{
-			name: "yaml with sops metadata",
-			content: []byte(`
-data:
-    api_key: ENC[AES256_GCM,data:abc123]
-sops:
-    kms:
-        - arn: arn:aws:kms:eu-west-1:123456789012:key/123
-          created_at: "2024-02-10T12:00:00Z"
-          enc: abc123
-    gcp_kms: []
-    azure_kv: []
-    lastmodified: "2024-02-10T12:00:00Z"
-    mac: abc123
-    version: 3.7.3
-`),
-			decrypter:   mockDecrypter{},
-			expectError: false,
-			expectMap: map[string]any{
-				"decrypted_key": "decrypted_value",
-			},
-		},
-		{
-			name: "decryption fails",
-			content: []byte(`sops:
-  kms: []
-  gcp_kms: []
-  azure_kv: []
-  lastmodified: "2024-02-10T12:00:00Z"
-  mac: "abc123"
-  version: "3.7.3"
-`),
-			decrypter:   erroringDecrypter{},
-			expectError: true,
-			expectMap:   nil,
-		},
-		{
-			name: "invalid yaml, with decrypter",
-			content: []byte(`
-invalid: : yaml
-  - broken structure
-`),
-			decrypter:   mockDecrypter{},
-			expectError: true,
-		},
-		{
-			name: "invalid yaml, no decrypter",
+			name: "invalid yaml",
 			content: []byte(`
 invalid: : yaml
   - broken structure
@@ -147,7 +85,7 @@ invalid: : yaml
 				content: tt.content,
 			}
 
-			result, err := FromYamlToMap(f, YamlContext{Decrypter: tt.decrypter})
+			result, err := FromYamlToMap(f, YamlContext{})
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {

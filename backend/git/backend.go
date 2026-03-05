@@ -25,9 +25,7 @@ import (
 func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfiguration) error {
 	s.Config = config.Git
 
-	s.YamlContext = filetypes.YamlContext{
-		Decrypter: filetypes.SopsDecrypter{},
-	}
+	s.YamlContext = filetypes.YamlContext{}
 
 	if s.Config.PrivateKey != "" {
 		hostKeyCallback, err := ssh.NewKnownHostsCallback(s.Config.KnownHostsFile)

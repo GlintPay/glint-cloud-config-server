@@ -12,7 +12,7 @@ import (
 )
 
 func TestInit(t *testing.T) {
-	defaultYamlCtxt := filetypes.YamlContext{Decrypter: filetypes.SopsDecrypter{}}
+	defaultYamlCtxt := filetypes.YamlContext{}
 
 	tests := []example{
 		{
