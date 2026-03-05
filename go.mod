@@ -1,6 +1,6 @@
 module github.com/GlintPay/gccs
 
-go 1.25.0
+go 1.26
 
 require (
 	codnect.io/chrono v1.1.3
