@@ -9,7 +9,7 @@ require (
 	github.com/emirpasic/gods v1.18.1
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/httplog v0.3.2
-	github.com/go-git/go-git/v5 v5.17.1
+	github.com/go-git/go-git/v5 v5.18.0
 	github.com/heptiolabs/healthcheck v0.0.0-20211123025425-613501dd5deb
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/prometheus/client_golang v1.20.5
