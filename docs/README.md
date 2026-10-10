@@ -324,6 +324,14 @@ This allows instrumentation of HTTP requests with some additional observability 
       dbName: "{{{ dashToUnderscore (first .Applications) }}}_db"
     ```
 
+    Templates are rendered *before* `${}` placeholders are resolved, so `${...}` inside a template is just literal text. To use another property's value in a template, call `prop`, e.g. to lowercase `cluster.displayName` and replace spaces with underscores:
+
+    ```gotemplate
+    name: '{{ prop "cluster.displayName" | lower | replace " " "_" }}'
+    ```
+
+    `prop` accepts the same syntax as `${}`, including defaults (`prop "cluster.displayName:unknown"`). Template data available: `.Applications` and `.Profiles`. The delimiters default to `{{` / `}}` and can be changed via `gotemplate.leftDelim` / `gotemplate.rightDelim`.
+
 * **Property injection** - client-side:
 
   Send a JSON structure of configuration property name / values to the REST endpoint via the `PATCH` verb.

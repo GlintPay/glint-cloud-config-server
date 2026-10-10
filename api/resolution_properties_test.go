@@ -67,6 +67,31 @@ func Test_resolvePlaceholders(t *testing.T) {
 			},
 		},
 		{
+			name: "templates-prop-function",
+			inputs: map[string]any{
+				"cluster.displayName": "My Prod Cluster",
+				"a":                   "{{ prop \"cluster.displayName\" | lower | replace \" \" \"_\" }}_db",
+				"b":                   "{{ prop \"missing:Some Default\" | lower | replace \" \" \"_\" }}",
+				"c":                   "${a}!",
+			},
+			expectation: map[string]any{
+				"cluster.displayName": "My Prod Cluster",
+				"a":                   "my_prod_cluster_db",
+				"b":                   "some_default",
+				"c":                   "my_prod_cluster_db!",
+			},
+		},
+		{
+			name: "templates-prop-function-cycle",
+			inputs: map[string]any{
+				"a": "{{ prop \"a\" }}",
+			},
+			expectation: map[string]any{
+				"a": "",
+			},
+			expectedErrorMsg: "stack overflow found when resolving ${a}",
+		},
+		{
 			name: "templates-good-custom-delims",
 			inputs: map[string]any{
 				"a": "Application: <<< first .Applications >>>, Profile: <<< first .Profiles >>>",

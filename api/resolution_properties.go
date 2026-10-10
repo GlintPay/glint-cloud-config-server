@@ -77,9 +77,17 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]any, propertyN
 	goTemplatesResult := value
 
 	// Look for possible Go templates
-	if strings.Contains(value, pr.templateConfig.LeftDelim) && strings.Contains(value, pr.templateConfig.RightDelim) {
+	if pr.hasTemplate(value) {
 		var buf strings.Builder
-		tmpl, e := template.New("").Funcs(sprigFuncs).Funcs(customFuncs).Delims(pr.templateConfig.LeftDelim, pr.templateConfig.RightDelim).Parse(value)
+		// "prop" is per-call as it needs the current resolution state. It delegates to the ${} machinery,
+		// so defaults ("name:default"), recursion and cycle detection all apply.
+		propFunc := template.FuncMap{
+			"prop": func(name string) string {
+				return pr.resolveString(currentMap, propertyName, "${"+name+"}", stack)
+			},
+		}
+
+		tmpl, e := template.New("").Funcs(sprigFuncs).Funcs(customFuncs).Funcs(propFunc).Delims(pr.templateConfig.LeftDelim, pr.templateConfig.RightDelim).Parse(value)
 		if e != nil {
 			pr.error = e
 			return ""
@@ -126,7 +134,7 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]any, propertyN
 		if currVal, ok := pr.resolvePropertyName(sourcePropertyWithDefault[0]); ok {
 			switch currValStr := currVal.(type) {
 			case string:
-				if strings.Contains(currValStr, "${") {
+				if strings.Contains(currValStr, "${") || pr.hasTemplate(currValStr) {
 					// recurse to resolve placeholder...
 					propName := sourcePropertyWithDefault[0]
 
@@ -167,6 +175,10 @@ func (pr *PropertiesResolver) resolveString(currentMap map[string]any, propertyN
 	})
 
 	return propertiesResult
+}
+
+func (pr *PropertiesResolver) hasTemplate(value string) bool {
+	return strings.Contains(value, pr.templateConfig.LeftDelim) && strings.Contains(value, pr.templateConfig.RightDelim)
 }
 
 func (pr *PropertiesResolver) resolvePropertyName(name string) (any, bool) {
