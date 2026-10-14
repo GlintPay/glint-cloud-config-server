@@ -45,73 +45,17 @@ func handleFlattenedLists(source map[string]any) error {
 	return nil
 }
 
-func remapDataValues(source map[string]any) error { //nolint
+func remapDataValues(source map[string]any) error {
 	var overallErr error = nil
 
 	// Map data items recursively - but don't restructure any lists or structures
 	for k, propertyValue := range source {
-		if strings.HasSuffix(k, "CSV") { // Properties ending in "CSV" will, as a convenience, be split into a list on the fly
-			list := strings.Split(propertyValue.(string), ",")
-			if len(list) > 0 {
-				for i := range list {
-					list[i] = strings.TrimSpace(list[i])
-				}
-
-				source[k[:len(k)-3]] = list
-			}
-		} else if strings.Index(k, DurationSuffix) > 0 {
-			switch propertyValueTyped := propertyValue.(type) {
-			case string:
-				durationVal, err := time.ParseDuration(propertyValueTyped)
-				if err == nil {
-					source[strings.Replace(k, DurationSuffix, "", 1)] = durationVal
-					delete(source, k)
-				}
-			case map[string]any:
-				for pkey, pval := range propertyValueTyped {
-					decValue, err := time.ParseDuration(pval.(string))
-					if err == nil {
-						propertyValueTyped[pkey] = decValue
-					}
-				}
-				source[strings.Replace(k, DurationSuffix, "", 1)] = propertyValueTyped
-				delete(source, k)
-			default:
-				return fmt.Errorf("unexpected value type %+v - should be string or map[string]any", propertyValueTyped)
-			}
-		} else if strings.Index(k, DecimalSuffix) > 0 { // Properties ending in DecimalSuffix will be converted from string to decimal
-			switch propertyValueTyped := propertyValue.(type) {
-			case string:
-				decValue, err := decimal.NewFromString(propertyValueTyped)
-				if err == nil {
-					source[strings.Replace(k, DecimalSuffix, "", 1)] = decValue
-					delete(source, k)
-				}
-			case map[string]any:
-				for pkey, pval := range propertyValueTyped {
-					decValue, err := decimal.NewFromString(pval.(string))
-					if err == nil {
-						propertyValueTyped[pkey] = decValue
-					}
-				}
-				source[strings.Replace(k, DecimalSuffix, "", 1)] = propertyValueTyped
-				delete(source, k)
-			default:
-				return fmt.Errorf("unexpected value type %+v - should be string or map[string]any", propertyValueTyped)
-			}
-		} else if strings.Index(k, StringSuffix) > 0 { // Currently only to support overrides that looked like numbers but are meant as strings
-			switch propertyValueTyped := propertyValue.(type) {
-			case string:
-				source[strings.Replace(k, StringSuffix, "", 1)] = propertyValueTyped
-				delete(source, k)
-			default:
-				return fmt.Errorf("unexpected value type %+v - should be string", propertyValueTyped)
-			}
+		if err := remapDataValue(source, k, propertyValue); err != nil {
+			return err
 		}
 
 		// Recurse into value maps...
-		switch propertyValueTyped := propertyValue.(type) {
-		case map[string]any:
+		if propertyValueTyped, ok := propertyValue.(map[string]any); ok {
 			if e := remapDataValues(propertyValueTyped); e != nil {
 				overallErr = e
 			}
@@ -119,4 +63,53 @@ func remapDataValues(source map[string]any) error { //nolint
 	}
 
 	return overallErr
+}
+
+func remapDataValue(source map[string]any, k string, propertyValue any) error {
+	switch {
+	case strings.HasSuffix(k, "CSV"): // Properties ending in "CSV" will, as a convenience, be split into a list on the fly
+		list := strings.Split(propertyValue.(string), ",")
+		if len(list) > 0 {
+			for i := range list {
+				list[i] = strings.TrimSpace(list[i])
+			}
+
+			source[k[:len(k)-3]] = list
+		}
+	case strings.Index(k, DurationSuffix) > 0:
+		return remapParsed(source, k, DurationSuffix, propertyValue, time.ParseDuration)
+	case strings.Index(k, DecimalSuffix) > 0: // Properties ending in DecimalSuffix will be converted from string to decimal
+		return remapParsed(source, k, DecimalSuffix, propertyValue, decimal.NewFromString)
+	case strings.Index(k, StringSuffix) > 0: // Currently only to support overrides that looked like numbers but are meant as strings
+		propertyValueTyped, ok := propertyValue.(string)
+		if !ok {
+			return fmt.Errorf("unexpected value type %+v - should be string", propertyValue)
+		}
+		source[strings.Replace(k, StringSuffix, "", 1)] = propertyValueTyped
+		delete(source, k)
+	}
+	return nil
+}
+
+func remapParsed[T any](source map[string]any, k string, suffix string, propertyValue any, parse func(string) (T, error)) error {
+	switch propertyValueTyped := propertyValue.(type) {
+	case string:
+		parsed, err := parse(propertyValueTyped)
+		if err == nil {
+			source[strings.Replace(k, suffix, "", 1)] = parsed
+			delete(source, k)
+		}
+	case map[string]any:
+		for pkey, pval := range propertyValueTyped {
+			parsed, err := parse(pval.(string))
+			if err == nil {
+				propertyValueTyped[pkey] = parsed
+			}
+		}
+		source[strings.Replace(k, suffix, "", 1)] = propertyValueTyped
+		delete(source, k)
+	default:
+		return fmt.Errorf("unexpected value type %+v - should be string or map[string]any", propertyValueTyped)
+	}
+	return nil
 }
