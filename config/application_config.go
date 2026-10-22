@@ -2,6 +2,17 @@ package config
 
 type Configuration struct {
 	ApplicationConfigFileYmlPath string `env:"APP_CONFIG_FILE_YML_PATH" envDefault:"application.yml"`
+
+	// GitDefaultBranchName overrides git.defaultBranchName, so one image can
+	// serve a different config branch per deployment (e.g. env/<slug>).
+	GitDefaultBranchName string `env:"GIT_DEFAULT_BRANCH_NAME"`
+}
+
+// ApplyOverrides applies environment overrides on top of the YAML configuration.
+func (c Configuration) ApplyOverrides(app *ApplicationConfiguration) {
+	if c.GitDefaultBranchName != "" {
+		app.Git.DefaultBranchName = c.GitDefaultBranchName
+	}
 }
 
 // ApplicationConfiguration Must use full names for `sigs.k8s.io/yaml`

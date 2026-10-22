@@ -41,6 +41,7 @@ func main() {
 
 	appConfig := config.ApplicationConfiguration{}
 	readConfig(envConfig.ApplicationConfigFileYmlPath, &appConfig)
+	envConfig.ApplyOverrides(&appConfig)
 
 	logging.Setup(os.Stdout)
 
