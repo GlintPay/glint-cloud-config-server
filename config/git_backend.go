@@ -7,6 +7,8 @@ type GitConfig struct {
 	Uri            string
 	KnownHostsFile string `json:"knownHostsFile"`
 	PrivateKey     string `json:"privateKey"`
+	Token          string `json:"token"`
+	TokenFile      string `json:"tokenFile"`
 
 	Basedir                string `json:"basedir"`
 	DisableBaseDirCleaning bool   `json:"disableBaseDirCleaning"`

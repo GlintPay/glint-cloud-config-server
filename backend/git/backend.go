@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	goGitConfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/rs/zerolog/log"
 )
@@ -26,6 +28,32 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 	s.Config = config.Git
 
 	s.YamlContext = filetypes.YamlContext{}
+	s.Auth = nil
+
+	if s.Config.Token != "" || s.Config.TokenFile != "" {
+		if s.Config.Token != "" && s.Config.TokenFile != "" {
+			return fmt.Errorf("git.token and git.tokenFile are mutually exclusive")
+		}
+		if s.Config.PrivateKey != "" {
+			return fmt.Errorf("git.token or git.tokenFile cannot be combined with git.privateKey")
+		}
+		u, err := url.Parse(s.Config.Uri)
+		if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil {
+			return fmt.Errorf("git.token or git.tokenFile requires an HTTPS git.uri without embedded credentials")
+		}
+		token := s.Config.Token
+		if s.Config.TokenFile != "" {
+			data, err := os.ReadFile(s.Config.TokenFile)
+			if err != nil {
+				return fmt.Errorf("read git.tokenFile: %w", err)
+			}
+			token = strings.TrimSpace(string(data))
+			if token == "" {
+				return fmt.Errorf("git.tokenFile must contain a non-empty token")
+			}
+		}
+		s.Auth = &http.BasicAuth{Username: "x-access-token", Password: token}
+	}
 
 	if s.Config.PrivateKey != "" {
 		hostKeyCallback, err := ssh.NewKnownHostsCallback(s.Config.KnownHostsFile)
@@ -33,12 +61,13 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 			return err
 		}
 
-		s.PublicKeys, err = ssh.NewPublicKeys("git", []byte(strings.TrimSpace(s.Config.PrivateKey)), "")
+		publicKeys, err := ssh.NewPublicKeys("git", []byte(strings.TrimSpace(s.Config.PrivateKey)), "")
 		if err != nil {
 			return err
 		}
 
-		s.PublicKeys.HostKeyCallback = hostKeyCallback
+		publicKeys.HostKeyCallback = hostKeyCallback
+		s.Auth = publicKeys
 	}
 
 	if s.Config.CloneOnStart {
@@ -149,11 +178,9 @@ func (s *Backend) getCloneOptions(ref plumbing.ReferenceName, depth int) *goGit.
 		ReferenceName: ref,
 		Depth:         depth,
 		URL:           s.Config.Uri,
+		Auth:          s.Auth,
 	}
 
-	if s.PublicKeys != nil {
-		cloneOpts.Auth = s.PublicKeys
-	}
 	if s.Config.ShowProgress {
 		cloneOpts.Progress = os.Stdout
 	}
@@ -164,11 +191,9 @@ func (s *Backend) getCloneOptions(ref plumbing.ReferenceName, depth int) *goGit.
 func (s *Backend) getPullOptions(ref plumbing.ReferenceName) *goGit.PullOptions {
 	po := &goGit.PullOptions{
 		ReferenceName: ref,
+		Auth:          s.Auth,
 	}
 
-	if s.PublicKeys != nil {
-		po.Auth = s.PublicKeys
-	}
 	if s.Config.ShowProgress {
 		po.Progress = os.Stdout
 	}
@@ -220,13 +245,11 @@ func (s *Backend) fetchOrigin(repo *goGit.Repository, refSpecStr string) error {
 
 	fo := &goGit.FetchOptions{
 		RefSpecs: refSpecs,
+		Auth:     s.Auth,
 	}
 
 	if s.Config.ShowProgress {
 		fo.Progress = os.Stdout
-	}
-	if s.PublicKeys != nil {
-		fo.Auth = s.PublicKeys
 	}
 
 	if err = remote.Fetch(fo); err != nil {
