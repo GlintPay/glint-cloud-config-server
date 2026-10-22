@@ -28,6 +28,39 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 	s.Config = config.Git
 
 	s.YamlContext = filetypes.YamlContext{}
+	if err := s.initAuth(); err != nil {
+		return err
+	}
+
+	if s.Config.CloneOnStart {
+		log.Debug().Msg("Clone on startup...")
+
+		if e := s.connect(ctxt, "", !s.Config.DisableBaseDirCleaning); e != nil {
+			return e
+		}
+	}
+
+	if s.Config.RefreshRateMillis > 0 {
+		scheduler := chrono.NewDefaultTaskScheduler()
+
+		period := time.Duration(s.Config.RefreshRateMillis) * time.Millisecond
+		log.Info().Msgf("Scheduling pull every %v", period)
+
+		_, err := scheduler.ScheduleAtFixedRate(func(ctx context.Context) {
+			if e := s.connect(ctxt, "", false); e != nil {
+				log.Error().Err(e).Msgf("Connect failed")
+			}
+		}, period)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Backend) initAuth() error {
 	s.Auth = nil
 
 	if s.Config.Token != "" || s.Config.TokenFile != "" {
@@ -68,31 +101,6 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 
 		publicKeys.HostKeyCallback = hostKeyCallback
 		s.Auth = publicKeys
-	}
-
-	if s.Config.CloneOnStart {
-		log.Debug().Msg("Clone on startup...")
-
-		if e := s.connect(ctxt, "", !s.Config.DisableBaseDirCleaning); e != nil {
-			return e
-		}
-	}
-
-	if s.Config.RefreshRateMillis > 0 {
-		scheduler := chrono.NewDefaultTaskScheduler()
-
-		period := time.Duration(s.Config.RefreshRateMillis) * time.Millisecond
-		log.Info().Msgf("Scheduling pull every %v", period)
-
-		_, err := scheduler.ScheduleAtFixedRate(func(ctx context.Context) {
-			if e := s.connect(ctxt, "", false); e != nil {
-				log.Error().Err(e).Msgf("Connect failed")
-			}
-		}, period)
-
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
