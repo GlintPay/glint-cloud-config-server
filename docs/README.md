@@ -68,6 +68,79 @@ The aims for our project are:
       show-progress: false  # log clones and pulls
       refreshRate: 0        # default = 0 secs => Fetch updated configuration from the Git repo every time it is requested
 
+### GitHub personal access token authentication
+
+To use a fine-grained personal access token (PAT), replace the SSH URI and
+credentials with:
+
+```yaml
+git:
+  uri: https://github.com/Org/repo.git
+  token: "YOUR_TOKEN"
+  basedir: /tmp/cloud-config
+  clone-on-start: true
+```
+
+Grant the token access to the configuration repository with **Contents: read-only**.
+Select the correct resource owner and repository, and obtain organization
+approval if required.
+
+`git.token` and `git.tokenFile` require an HTTPS URI without embedded credentials.
+Choose only one; neither can be combined with `git.privateKey`.
+`git.knownHostsFile` is only used for SSH. Tokens
+authenticate clone, pull, and branch fetch operations without being stored in the
+remote URL. Keep the token in a secret-managed configuration file; do not commit
+it. Environment variable placeholders in `application.yml` are not expanded.
+
+Configuration is read at startup. Rotate the PAT before its configured expiry
+and restart the service after replacing it. Automatic token generation and
+renewal are not supported.
+
+#### Kubernetes Secret
+
+Keep ordinary configuration in your existing ConfigMap and replace `git.token`
+with a path to a mounted Secret:
+
+```yaml
+git:
+  uri: https://github.com/Org/repo.git
+  tokenFile: /etc/gccs-secrets/token
+  basedir: /tmp/cloud-config
+  clone-on-start: true
+```
+
+Create a Secret named `cloud-config-git` in the Pod's namespace with a `token`
+key containing the PAT, using your existing secret management workflow. Add the
+following to the Pod spec (or `spec.template.spec` for a Deployment), retaining
+the existing container settings and configuration mount:
+
+```yaml
+containers:
+  - name: cloud-config-server
+    volumeMounts:
+      - name: git-token
+        mountPath: /etc/gccs-secrets
+        readOnly: true
+volumes:
+  - name: git-token
+    secret:
+      secretName: cloud-config-git
+      items:
+        - key: token
+          path: token
+```
+
+The token file is read once at startup; surrounding whitespace is trimmed.
+A missing, unreadable, or empty file fails startup. Restart the Pod after
+rotating the Secret; mounted file updates do not reload the credentials.
+
+When migrating an existing checkout from SSH to HTTPS, recreate the disposable
+`git.basedir` clone (the default startup cleaning does this when `clone-on-start`
+is enabled). With `disableBaseDirCleaning: true`, the existing origin URL is
+retained and must be updated to the credential-free HTTPS URI before restarting.
+
+See GitHub's documentation on [personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
+
 ### Testing:
 
 One application, multiple ordered profiles, main Git branch:

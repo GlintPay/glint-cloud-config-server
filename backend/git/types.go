@@ -5,14 +5,14 @@ import (
 	"github.com/GlintPay/gccs/filetypes"
 	goGit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/go-git/go-git/v5/plumbing/transport"
 	"sync"
 )
 
 type Backend struct {
 	Config      config.GitConfig
 	Repo        *goGit.Repository
-	PublicKeys  *ssh.PublicKeys
+	Auth        transport.AuthMethod
 	EnableTrace bool
 
 	commitsLock sync.RWMutex
