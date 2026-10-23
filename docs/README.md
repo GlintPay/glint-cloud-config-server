@@ -93,8 +93,7 @@ remote URL. Keep the token in a secret-managed configuration file; do not commit
 it. Environment variable placeholders in `application.yml` are not expanded.
 
 Configuration is read at startup. Rotate the PAT before its configured expiry
-and restart the service after replacing it. Automatic token generation and
-renewal are not supported.
+and restart the service after replacing it. PAT renewal is not automatic.
 
 #### Kubernetes Secret
 
@@ -134,12 +133,49 @@ The token file is read once at startup; surrounding whitespace is trimmed.
 A missing, unreadable, or empty file fails startup. Restart the Pod after
 rotating the Secret; mounted file updates do not reload the credentials.
 
-When migrating an existing checkout from SSH to HTTPS, recreate the disposable
+#### GitHub App authentication
+
+For credentials independent of an individual GitHub user, register an
+organization-owned GitHub App and install it on the configuration repository
+with **Contents: read-only**. No OAuth callback or webhook is required.
+Use the App's client ID and the installation ID (not the App ID):
+
+```yaml
+git:
+  uri: https://github.com/Org/repo.git
+  githubApp:
+    clientId: Iv1.example
+    installationId: 12345678
+    privateKeyFile: /etc/gccs-secrets/github-app.pem
+  basedir: /tmp/cloud-config
+  clone-on-start: true
+```
+
+Store the App's unencrypted RSA PEM private key in your secret manager. Mount it
+read-only using the Kubernetes Secret example above, replacing the Secret key
+and file path `token` with `github-app.pem`. Both PKCS1 and PKCS8 keys are accepted.
+The key is read at startup; restart the service after rotating it.
+
+`git.githubApp` requires an HTTPS `github.com` URI without embedded credentials
+and cannot be combined with `git.token`, `git.tokenFile`, or `git.privateKey`.
+Clone, pull, and branch fetch use the configured URI, overriding a cached
+checkout's origin for network requests. GitHub Enterprise Server is not supported
+by this authentication mode.
+
+The service signs a short-lived JWT and exchanges it for an installation token
+with read-only contents permission. Tokens are cached in memory and renewed on
+demand within one minute of expiry, for clone, pull, and branch fetch. Concurrent
+requests share the cached token and serialize renewal. Failed token requests
+fail the Git operation without returning credentials in error messages.
+Allow outbound HTTPS to both `api.github.com` and `github.com`, and keep the
+server clock synchronized. No additional token-refresh process is needed.
+
+When migrating an existing checkout from SSH to PAT authentication, recreate the disposable
 `git.basedir` clone (the default startup cleaning does this when `clone-on-start`
 is enabled). With `disableBaseDirCleaning: true`, the existing origin URL is
 retained and must be updated to the credential-free HTTPS URI before restarting.
 
-See GitHub's documentation on [personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
+See GitHub's documentation on [installation authentication](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation) and [personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
 
 ### Testing:
 

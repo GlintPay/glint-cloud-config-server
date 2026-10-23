@@ -62,6 +62,12 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 
 func (s *Backend) initAuth() error {
 	s.Auth = nil
+	s.githubApp = nil
+	if s.Config.GitHubApp != nil {
+		var err error
+		s.githubApp, err = newGitHubAppAuth(s.Config)
+		return err
+	}
 
 	if s.Config.Token != "" || s.Config.TokenFile != "" {
 		if s.Config.Token != "" && s.Config.TokenFile != "" {
@@ -135,6 +141,10 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 		}
 
 		cloneOpts := s.getCloneOptions(ref, depth)
+		cloneOpts.Auth, err = s.authentication(ctxt)
+		if err != nil {
+			return err
+		}
 		repo, err = goGit.PlainCloneContext(ctxt, s.Config.Basedir, false, cloneOpts)
 		if err != nil {
 			return err
@@ -162,8 +172,7 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 				defer span.End()
 			}
 
-			po := s.getPullOptions(ref)
-			err = w.Pull(po)
+			err = s.pull(ctxt, w, ref)
 			if err != nil && err != goGit.NoErrAlreadyUpToDate {
 				return err
 			}
@@ -179,6 +188,16 @@ func (s *Backend) connect(ctxt context.Context, branch string, cleanExisting boo
 	s.Repo = repo
 
 	return nil
+}
+
+func (s *Backend) pull(ctx context.Context, w *goGit.Worktree, ref plumbing.ReferenceName) error {
+	po := s.getPullOptions(ref)
+	var err error
+	po.Auth, err = s.authentication(ctx)
+	if err != nil {
+		return err
+	}
+	return w.PullContext(ctx, po)
 }
 
 func (s *Backend) getCloneOptions(ref plumbing.ReferenceName, depth int) *goGit.CloneOptions {
@@ -201,6 +220,10 @@ func (s *Backend) getPullOptions(ref plumbing.ReferenceName) *goGit.PullOptions 
 		ReferenceName: ref,
 		Auth:          s.Auth,
 	}
+	if s.githubApp != nil {
+		// Send installation credentials only to the configured, validated GitHub URL.
+		po.RemoteURL = s.Config.Uri
+	}
 
 	if s.Config.ShowProgress {
 		po.Progress = os.Stdout
@@ -212,7 +235,7 @@ func (s *Backend) getPullOptions(ref plumbing.ReferenceName) *goGit.PullOptions 
 	return po
 }
 
-func (s *Backend) checkout(_ context.Context, repo *goGit.Repository, w *goGit.Worktree, branch string, ref plumbing.ReferenceName) error {
+func (s *Backend) checkout(ctxt context.Context, repo *goGit.Repository, w *goGit.Worktree, branch string, ref plumbing.ReferenceName) error {
 	coOpts := &goGit.CheckoutOptions{
 		Branch: ref,
 		Create: false,
@@ -227,7 +250,7 @@ func (s *Backend) checkout(_ context.Context, repo *goGit.Repository, w *goGit.W
 	}
 
 	mirrorRemoteBranchRefSpec := fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch)
-	if err = s.fetchOrigin(repo, mirrorRemoteBranchRefSpec); err != nil {
+	if err = s.fetchOrigin(ctxt, repo, mirrorRemoteBranchRefSpec); err != nil {
 		return err
 	}
 
@@ -240,7 +263,7 @@ func (s *Backend) checkout(_ context.Context, repo *goGit.Repository, w *goGit.W
 }
 
 // Borrowed from https://github.com/go-git/go-git/pull/446/files/62e512f0805303f9c245890bf2599295fc0f9774#diff-15808dd1f39f7d3198c9803a02fc1222b866ad5705b5aea887bb6a89ad572223
-func (s *Backend) fetchOrigin(repo *goGit.Repository, refSpecStr string) error {
+func (s *Backend) fetchOrigin(ctxt context.Context, repo *goGit.Repository, refSpecStr string) error {
 	remote, err := repo.Remote("origin")
 	if err != nil {
 		return err
@@ -255,12 +278,19 @@ func (s *Backend) fetchOrigin(repo *goGit.Repository, refSpecStr string) error {
 		RefSpecs: refSpecs,
 		Auth:     s.Auth,
 	}
+	if s.githubApp != nil {
+		fo.RemoteURL = s.Config.Uri
+	}
+	fo.Auth, err = s.authentication(ctxt)
+	if err != nil {
+		return err
+	}
 
 	if s.Config.ShowProgress {
 		fo.Progress = os.Stdout
 	}
 
-	if err = remote.Fetch(fo); err != nil {
+	if err = remote.FetchContext(ctxt, fo); err != nil {
 		if err == goGit.NoErrAlreadyUpToDate {
 			log.Debug().Msgf("refs already up to date")
 		} else {

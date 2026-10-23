@@ -47,7 +47,7 @@ func TestTokenAuth(t *testing.T) {
 	require.NoError(t, err)
 	_, err = repo.CreateRemote(&goGitConfig.RemoteConfig{Name: "origin", URLs: []string{server.URL}})
 	require.NoError(t, err)
-	require.Error(t, b.fetchOrigin(repo, ""))
+	require.Error(t, b.fetchOrigin(context.Background(), repo, ""))
 	require.Equal(t, "x-access-token", username)
 	require.Equal(t, "test-token", password)
 }
