@@ -32,8 +32,9 @@ func TestTokenAuth(t *testing.T) {
 	require.Equal(t, "x-access-token", auth.Username)
 	require.Equal(t, "test-token", auth.Password)
 	ref := plumbing.NewBranchReferenceName("main")
-	require.Same(t, auth, b.getCloneOptions(ref, 0).Auth)
-	require.Same(t, auth, b.getPullOptions(ref).Auth)
+	currentAuth, err := b.authentication(context.Background())
+	require.NoError(t, err)
+	require.Same(t, auth, currentAuth)
 	require.Equal(t, cfg.Git.Uri, b.getCloneOptions(ref, 0).URL)
 
 	// A branch fetch must send the same credentials as clone and pull.
@@ -63,9 +64,9 @@ func TestTokenFileAuth(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "test-token", auth.Password)
 	require.Equal(t, "x-access-token", auth.Username)
-	ref := plumbing.NewBranchReferenceName("main")
-	require.Same(t, auth, b.getCloneOptions(ref, 0).Auth)
-	require.Same(t, auth, b.getPullOptions(ref).Auth)
+	currentAuth, err := b.authentication(context.Background())
+	require.NoError(t, err)
+	require.Same(t, auth, currentAuth)
 
 	for _, tt := range []struct {
 		name string
@@ -131,12 +132,13 @@ func TestSSHAndUnauthenticatedAuth(t *testing.T) {
 		Uri: "git@github.com:Org/repo.git", PrivateKey: string(pem.EncodeToMemory(block)), KnownHostsFile: knownHosts,
 	}}))
 	require.IsType(t, &gitSSH.PublicKeys{}, b.Auth)
-	ref := plumbing.NewBranchReferenceName("main")
-	require.Same(t, b.Auth, b.getCloneOptions(ref, 0).Auth)
-	require.Same(t, b.Auth, b.getPullOptions(ref).Auth)
+	auth, err := b.authentication(context.Background())
+	require.NoError(t, err)
+	require.Same(t, b.Auth, auth)
 
 	require.NoError(t, b.Init(context.Background(), config.ApplicationConfiguration{}))
 	require.Nil(t, b.Auth)
-	require.Nil(t, b.getCloneOptions(ref, 0).Auth)
-	require.Nil(t, b.getPullOptions(ref).Auth)
+	auth, err = b.authentication(context.Background())
+	require.NoError(t, err)
+	require.Nil(t, auth)
 }

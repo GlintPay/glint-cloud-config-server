@@ -163,10 +163,14 @@ checkout's origin for network requests. GitHub Enterprise Server is not supporte
 by this authentication mode.
 
 The service signs a short-lived JWT and exchanges it for an installation token
-with read-only contents permission. Tokens are cached in memory and renewed on
-demand within one minute of expiry, for clone, pull, and branch fetch. Concurrent
-requests share the cached token and serialize renewal. Failed token requests
-fail the Git operation without returning credentials in error messages.
+restricted to the repository in `git.uri`, with read-only contents permission.
+Tokens are cached in memory and renewed on demand within one minute of expiry,
+for clone, pull, and branch fetch. Concurrent requests share the cached token
+and serialize renewal. Callers waiting for
+renewal can cancel without waiting for the active token request to finish.
+Failed token requests fail the Git operation without returning credentials in
+error messages. Pull and fetch honor caller cancellation, including HTTP client
+disconnections.
 Allow outbound HTTPS to both `api.github.com` and `github.com`, and keep the
 server clock synchronized. No additional token-refresh process is needed.
 
@@ -174,6 +178,8 @@ When migrating an existing checkout from SSH to PAT authentication, recreate the
 `git.basedir` clone (the default startup cleaning does this when `clone-on-start`
 is enabled). With `disableBaseDirCleaning: true`, the existing origin URL is
 retained and must be updated to the credential-free HTTPS URI before restarting.
+GitHub App authentication does not require this origin change: it uses `git.uri`
+for network requests even when the checkout has an older origin.
 
 See GitHub's documentation on [installation authentication](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation) and [personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
 

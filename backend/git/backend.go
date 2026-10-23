@@ -205,7 +205,6 @@ func (s *Backend) getCloneOptions(ref plumbing.ReferenceName, depth int) *goGit.
 		ReferenceName: ref,
 		Depth:         depth,
 		URL:           s.Config.Uri,
-		Auth:          s.Auth,
 	}
 
 	if s.Config.ShowProgress {
@@ -218,7 +217,6 @@ func (s *Backend) getCloneOptions(ref plumbing.ReferenceName, depth int) *goGit.
 func (s *Backend) getPullOptions(ref plumbing.ReferenceName) *goGit.PullOptions {
 	po := &goGit.PullOptions{
 		ReferenceName: ref,
-		Auth:          s.Auth,
 	}
 	if s.githubApp != nil {
 		// Send installation credentials only to the configured, validated GitHub URL.
@@ -276,7 +274,6 @@ func (s *Backend) fetchOrigin(ctxt context.Context, repo *goGit.Repository, refS
 
 	fo := &goGit.FetchOptions{
 		RefSpecs: refSpecs,
-		Auth:     s.Auth,
 	}
 	if s.githubApp != nil {
 		fo.RemoteURL = s.Config.Uri

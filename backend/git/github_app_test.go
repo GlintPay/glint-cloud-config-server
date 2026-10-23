@@ -27,6 +27,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	gitHTTP "github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/yaml"
 )
@@ -51,30 +52,37 @@ func TestGitHubAppTokenLifecycle(t *testing.T) {
 	var calls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
-		require.Equal(t, http.MethodPost, r.Method)
-		require.Equal(t, "application/vnd.github+json", r.Header.Get("Accept"))
-		require.Equal(t, "2026-03-10", r.Header.Get("X-GitHub-Api-Version"))
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "application/vnd.github+json", r.Header.Get("Accept"))
+		assert.Equal(t, "2026-03-10", r.Header.Get("X-GitHub-Api-Version"))
 		parts := strings.Split(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "), ".")
-		require.Len(t, parts, 3)
+		if !assert.Len(t, parts, 3) {
+			http.Error(w, "invalid JWT", http.StatusBadRequest)
+			return
+		}
 		signature, err := base64.RawURLEncoding.DecodeString(parts[2])
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		hash := sha256.Sum256([]byte(parts[0] + "." + parts[1]))
-		require.NoError(t, rsa.VerifyPKCS1v15(&key.PublicKey, crypto.SHA256, hash[:], signature))
+		assert.NoError(t, rsa.VerifyPKCS1v15(&key.PublicKey, crypto.SHA256, hash[:], signature))
 		payload, err := base64.RawURLEncoding.DecodeString(parts[1])
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		var claims struct {
 			Iss      string
 			Iat, Exp int64
 		}
-		require.NoError(t, json.Unmarshal(payload, &claims))
-		require.Equal(t, "Iv1.test", claims.Iss)
-		require.InDelta(t, time.Now().Add(-time.Minute).Unix(), claims.Iat, 5)
-		require.InDelta(t, time.Now().Add(9*time.Minute).Unix(), claims.Exp, 5)
-		var body map[string]map[string]string
-		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
-		require.Equal(t, map[string]map[string]string{"permissions": {"contents": "read"}}, body)
+		assert.NoError(t, json.Unmarshal(payload, &claims))
+		assert.Equal(t, "Iv1.test", claims.Iss)
+		assert.InDelta(t, time.Now().Add(-time.Minute).Unix(), claims.Iat, 5)
+		assert.InDelta(t, time.Now().Add(9*time.Minute).Unix(), claims.Exp, 5)
+		var body struct {
+			Repositories []string          `json:"repositories"`
+			Permissions  map[string]string `json:"permissions"`
+		}
+		assert.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+		assert.Equal(t, []string{"repo"}, body.Repositories)
+		assert.Equal(t, map[string]string{"contents": "read"}, body.Permissions)
 		w.WriteHeader(http.StatusCreated)
-		require.NoError(t, json.NewEncoder(w).Encode(map[string]any{"token": fmt.Sprintf("token-%d", calls.Load()), "expires_at": time.Now().Add(time.Hour)}))
+		assert.NoError(t, json.NewEncoder(w).Encode(map[string]any{"token": fmt.Sprintf("token-%d", calls.Load()), "expires_at": time.Now().Add(time.Hour)}))
 	}))
 	defer server.Close()
 	b.githubApp.endpoint = server.URL
@@ -193,7 +201,7 @@ func TestGitHubAppGitOperations(t *testing.T) {
 	var password string
 	gitServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		username, token, _ := r.BasicAuth()
-		require.Equal(t, "x-access-token", username)
+		assert.Equal(t, "x-access-token", username)
 		password = token
 		w.WriteHeader(http.StatusUnauthorized)
 	}))
@@ -228,4 +236,97 @@ func TestGitHubAppGitOperations(t *testing.T) {
 		})
 	}
 	require.EqualValues(t, 3, tokenRequests.Load())
+}
+
+func TestGitHubAppRenewalWaitCancellation(t *testing.T) {
+	cfg, _ := appConfig(t)
+	a, err := newGitHubAppAuth(cfg)
+	require.NoError(t, err)
+	started := make(chan struct{})
+	unblock := make(chan struct{})
+	release := sync.OnceFunc(func() { close(unblock) })
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		close(started)
+		select {
+		case <-unblock:
+		case <-r.Context().Done():
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]any{"token": "renewed-token", "expires_at": time.Now().Add(time.Hour)})
+	}))
+	defer server.Close()
+	defer release()
+	a.endpoint = server.URL
+	first := make(chan error, 1)
+	go func() {
+		_, err := a.authentication(context.Background())
+		first <- err
+	}()
+	select {
+	case <-started:
+	case <-time.After(5 * time.Second):
+		t.Fatal("first renewal did not start")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	waiting := make(chan struct{})
+	second := make(chan error, 1)
+	go func() {
+		close(waiting)
+		_, err := a.authentication(ctx)
+		second <- err
+	}()
+	<-waiting
+	cancel()
+	select {
+	case err := <-second:
+		require.ErrorIs(t, err, context.Canceled)
+	case <-time.After(time.Second):
+		t.Fatal("canceled caller remained blocked by another caller's renewal")
+	}
+	select {
+	case err := <-first:
+		t.Fatalf("first renewal finished before being released: %v", err)
+	default:
+	}
+	require.EqualValues(t, 1, calls.Load())
+	release()
+	require.NoError(t, <-first)
+	auth, err := a.authentication(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, "renewed-token", auth.(*gitHTTP.BasicAuth).Password)
+	require.EqualValues(t, 1, calls.Load())
+}
+
+func TestGitHubRepository(t *testing.T) {
+	for _, uri := range []string{
+		"https://github.com/Org/repo.git",
+		"https://github.com:443/Org/repo.git",
+		"https://github.com/Org/repo",
+		"https://github.com/Org/repo.git/",
+	} {
+		t.Run(uri, func(t *testing.T) {
+			repository, err := githubRepository(uri)
+			require.NoError(t, err)
+			require.Equal(t, "repo", repository)
+		})
+	}
+	for _, uri := range []string{
+		"https://github.com:8443/Org/repo.git",
+		"https://github.com/Org",
+		"https://github.com//repo.git",
+		"https://github.com/Org/.git",
+		"https://github.com/Org/repo.git/extra",
+		"https://github.com/Org/repo.git?query=secret",
+		"https://github.com/Org/repo.git#fragment",
+	} {
+		t.Run(uri, func(t *testing.T) {
+			_, err := githubRepository(uri)
+			require.Error(t, err)
+			require.NotContains(t, err.Error(), "secret")
+		})
+	}
 }

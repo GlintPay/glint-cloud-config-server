@@ -1,6 +1,7 @@
 package git
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/rand"
@@ -16,22 +17,23 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/GlintPay/gccs/config"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	gitHTTP "github.com/go-git/go-git/v5/plumbing/transport/http"
+	"golang.org/x/sync/semaphore"
 )
 
 type githubAppAuth struct {
-	mu        sync.Mutex
-	clientID  string
-	key       *rsa.PrivateKey
-	endpoint  string
-	client    *http.Client
-	token     string
-	expiresAt time.Time
+	mu         *semaphore.Weighted
+	clientID   string
+	repository string
+	key        *rsa.PrivateKey
+	endpoint   string
+	client     *http.Client
+	token      string
+	expiresAt  time.Time
 }
 
 func newGitHubAppAuth(cfg config.GitConfig) (*githubAppAuth, error) {
@@ -39,9 +41,9 @@ func newGitHubAppAuth(cfg config.GitConfig) (*githubAppAuth, error) {
 	if cfg.Token != "" || cfg.TokenFile != "" || cfg.PrivateKey != "" {
 		return nil, fmt.Errorf("git.githubApp cannot be combined with git.token, git.tokenFile or git.privateKey")
 	}
-	u, err := url.Parse(cfg.Uri)
-	if err != nil || u.Scheme != "https" || u.Host != "github.com" || u.User != nil {
-		return nil, fmt.Errorf("git.githubApp requires an HTTPS github.com git.uri without embedded credentials")
+	repository, err := githubRepository(cfg.Uri)
+	if err != nil {
+		return nil, err
 	}
 	if strings.TrimSpace(app.ClientID) == "" || app.InstallationID <= 0 || app.PrivateKeyFile == "" {
 		return nil, fmt.Errorf("git.githubApp requires clientId, a positive installationId and privateKeyFile")
@@ -55,10 +57,30 @@ func newGitHubAppAuth(cfg config.GitConfig) (*githubAppAuth, error) {
 		return nil, err
 	}
 	return &githubAppAuth{
-		clientID: app.ClientID, key: key,
-		endpoint: fmt.Sprintf("https://api.github.com/app/installations/%d/access_tokens", app.InstallationID),
-		client:   &http.Client{Timeout: 15 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }},
+		mu:         semaphore.NewWeighted(1),
+		clientID:   app.ClientID,
+		repository: repository,
+		key:        key,
+		endpoint:   fmt.Sprintf("https://api.github.com/app/installations/%d/access_tokens", app.InstallationID),
+		client: &http.Client{
+			Timeout: 15 * time.Second,
+			CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		},
 	}, nil
+}
+
+func githubRepository(uri string) (string, error) {
+	u, err := url.Parse(uri)
+	if err != nil || u.Scheme != "https" || u.Hostname() != "github.com" || (u.Port() != "" && u.Port() != "443") || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		return "", fmt.Errorf("git.githubApp requires an HTTPS github.com git.uri without embedded credentials, query or fragment")
+	}
+	parts := strings.Split(strings.TrimSuffix(u.Path, "/"), "/")
+	if len(parts) != 3 || parts[1] == "" || strings.TrimSuffix(parts[2], ".git") == "" {
+		return "", fmt.Errorf("git.githubApp requires a git.uri with an owner and repository")
+	}
+	return strings.TrimSuffix(parts[2], ".git"), nil
 }
 
 func parseAppKey(data []byte) (*rsa.PrivateKey, error) {
@@ -92,8 +114,10 @@ func (s *Backend) authentication(ctx context.Context) (transport.AuthMethod, err
 }
 
 func (a *githubAppAuth) authentication(ctx context.Context) (transport.AuthMethod, error) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
+	if err := a.mu.Acquire(ctx, 1); err != nil {
+		return nil, err
+	}
+	defer a.mu.Release(1)
 	if a.token != "" && time.Until(a.expiresAt) > time.Minute {
 		return &gitHTTP.BasicAuth{Username: "x-access-token", Password: a.token}, nil
 	}
@@ -101,7 +125,14 @@ func (a *githubAppAuth) authentication(ctx context.Context) (transport.AuthMetho
 	if err != nil {
 		return nil, fmt.Errorf("sign GitHub App JWT: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.endpoint, strings.NewReader(`{"permissions":{"contents":"read"}}`))
+	body, err := json.Marshal(map[string]any{
+		"repositories": []string{a.repository},
+		"permissions":  map[string]string{"contents": "read"},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("encode GitHub App token request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.endpoint, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("create GitHub App token request: %w", err)
 	}
