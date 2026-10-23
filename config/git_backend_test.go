@@ -6,6 +6,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestDisabledGitIgnoresEnvironment(t *testing.T) {
+	t.Setenv("GIT_PRIVATE_KEY", "")
+	t.Setenv("GIT_GITHUB_APP_INSTALLATION_ID", "invalid")
+	t.Setenv("GIT_URI", "https://github.com/ignored/repo.git")
+	cfg := GitConfig{Disabled: true, Uri: "/original/repo"}
+	require.NoError(t, cfg.ReadEnvironment())
+	require.Equal(t, GitConfig{Disabled: true, Uri: "/original/repo"}, cfg)
+}
+
 func TestGitEnvironment(t *testing.T) {
 	for _, name := range []string{"GIT_URI", "GIT_KNOWN_HOSTS_FILE", "GIT_PRIVATE_KEY", "GIT_TOKEN", "GIT_TOKEN_FILE", "GIT_GITHUB_APP_CLIENT_ID", "GIT_GITHUB_APP_INSTALLATION_ID", "GIT_GITHUB_APP_PRIVATE_KEY_FILE"} {
 		t.Setenv(name, "")
