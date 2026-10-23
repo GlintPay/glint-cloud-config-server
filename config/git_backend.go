@@ -1,14 +1,16 @@
 package config
 
+import "github.com/caarlos0/env/v6"
+
 type GitConfig struct {
 	Disabled bool
 	Order    int
 
-	Uri            string
-	KnownHostsFile string           `json:"knownHostsFile"`
-	PrivateKey     string           `json:"privateKey"`
-	Token          string           `json:"token"`
-	TokenFile      string           `json:"tokenFile"`
+	Uri            string           `env:"GIT_URI"`
+	KnownHostsFile string           `json:"knownHostsFile" env:"GIT_KNOWN_HOSTS_FILE"`
+	PrivateKey     string           `json:"privateKey" env:"GIT_PRIVATE_KEY"`
+	Token          string           `json:"token" env:"GIT_TOKEN"`
+	TokenFile      string           `json:"tokenFile" env:"GIT_TOKEN_FILE"`
 	GitHubApp      *GitHubAppConfig `json:"githubApp"`
 
 	Basedir                string `json:"basedir"`
@@ -27,7 +29,22 @@ type GitConfig struct {
 }
 
 type GitHubAppConfig struct {
-	ClientID       string `json:"clientId"`
-	InstallationID int64  `json:"installationId"`
-	PrivateKeyFile string `json:"privateKeyFile"`
+	ClientID       string `json:"clientId" env:"GIT_GITHUB_APP_CLIENT_ID"`
+	InstallationID int64  `json:"installationId" env:"GIT_GITHUB_APP_INSTALLATION_ID"`
+	PrivateKeyFile string `json:"privateKeyFile" env:"GIT_GITHUB_APP_PRIVATE_KEY_FILE"`
+}
+
+// ReadEnvironment overrides Git settings after loading application.yml.
+func (g *GitConfig) ReadEnvironment() error {
+	hasAppConfig := g.GitHubApp != nil
+	if !hasAppConfig {
+		g.GitHubApp = &GitHubAppConfig{}
+	}
+	if err := env.Parse(g); err != nil {
+		return err
+	}
+	if !hasAppConfig && *g.GitHubApp == (GitHubAppConfig{}) {
+		g.GitHubApp = nil
+	}
+	return nil
 }

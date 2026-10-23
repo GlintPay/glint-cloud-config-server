@@ -41,6 +41,9 @@ func main() {
 
 	appConfig := config.ApplicationConfiguration{}
 	readConfig(envConfig.ApplicationConfigFileYmlPath, &appConfig)
+	if err := appConfig.Git.ReadEnvironment(); err != nil {
+		log.Fatal().Err(err).Msg("Git environment configuration loading failed")
+	}
 
 	logging.Setup(os.Stdout)
 

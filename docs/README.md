@@ -86,7 +86,10 @@ Select the correct resource owner and repository, and obtain organization
 approval if required.
 
 `git.token` and `git.tokenFile` require an HTTPS URI without embedded credentials.
-Choose only one; neither can be combined with `git.privateKey`.
+Choose only one. When `git.privateKey` is set, SSH takes precedence and PAT
+and GitHub App settings are ignored, including their credential files.
+Use an SSH `git.uri` and provide `git.knownHostsFile` for SSH host verification.
+An invalid SSH key fails startup rather than falling back to another mode.
 `git.knownHostsFile` is only used for SSH. Tokens
 authenticate clone, pull, and branch fetch operations without being stored in the
 remote URL. Keep the token in a secret-managed configuration file; do not commit
@@ -156,8 +159,9 @@ read-only using the Kubernetes Secret example above, replacing the Secret key
 and file path `token` with `github-app.pem`. Both PKCS1 and PKCS8 keys are accepted.
 The key is read at startup; restart the service after rotating it.
 
-`git.githubApp` requires an HTTPS `github.com` URI without embedded credentials
-and cannot be combined with `git.token`, `git.tokenFile`, or `git.privateKey`.
+When SSH is not configured, `git.githubApp` requires an HTTPS `github.com` URI
+without embedded credentials and cannot be combined with `git.token` or
+`git.tokenFile`.
 Clone, pull, and branch fetch use the configured URI, overriding a cached
 checkout's origin for network requests. GitHub Enterprise Server is not supported
 by this authentication mode.
@@ -182,6 +186,31 @@ GitHub App authentication does not require this origin change: it uses `git.uri`
 for network requests even when the checkout has an older origin.
 
 See GitHub's documentation on [installation authentication](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation) and [personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
+
+#### Runtime Git environment overrides
+
+The following environment variables override the corresponding settings after
+`application.yml` is loaded. Unset or empty variables leave YAML values intact.
+This lets images keep non-secret defaults while each deployment supplies its
+own authentication.
+
+| Variable | YAML setting |
+| --- | --- |
+| `GIT_URI` | `git.uri` |
+| `GIT_PRIVATE_KEY` | `git.privateKey` (the key contents, not a file path) |
+| `GIT_KNOWN_HOSTS_FILE` | `git.knownHostsFile` |
+| `GIT_TOKEN` | `git.token` |
+| `GIT_TOKEN_FILE` | `git.tokenFile` |
+| `GIT_GITHUB_APP_CLIENT_ID` | `git.githubApp.clientId` |
+| `GIT_GITHUB_APP_INSTALLATION_ID` | `git.githubApp.installationId` |
+| `GIT_GITHUB_APP_PRIVATE_KEY_FILE` | `git.githubApp.privateKeyFile` |
+
+For local Docker, supply `GIT_URI=git@github.com:GlintPay/cloud-config.git`,
+`GIT_PRIVATE_KEY` with your unencrypted SSH key contents, and
+`GIT_KNOWN_HOSTS_FILE` pointing to a mounted known-hosts file. No App or PAT is
+required. Keep credentials out of Docker build arguments and image layers.
+File paths must exist inside the running container. Restart after changing
+credentials or environment variables.
 
 ### Testing:
 

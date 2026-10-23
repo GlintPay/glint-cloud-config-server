@@ -75,7 +75,6 @@ func TestTokenFileAuth(t *testing.T) {
 		{name: "missing", cfg: config.GitConfig{TokenFile: path + ".missing"}},
 		{name: "directory", cfg: config.GitConfig{TokenFile: t.TempDir()}},
 		{name: "conflicting token", cfg: config.GitConfig{TokenFile: path, Token: "test-token"}},
-		{name: "conflicting key", cfg: config.GitConfig{TokenFile: path, PrivateKey: "private-key"}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.cfg.Uri = cfg.Git.Uri
@@ -94,7 +93,6 @@ func TestTokenValidation(t *testing.T) {
 	for _, tt := range []struct {
 		name string
 		uri  string
-		key  string
 	}{
 		{name: "SSH", uri: "git@github.com:Org/repo.git"},
 		{name: "HTTP", uri: "http://github.com/Org/repo.git"},
@@ -102,18 +100,17 @@ func TestTokenValidation(t *testing.T) {
 		{name: "missing URI"},
 		{name: "missing host", uri: "https:///repo"},
 		{name: "embedded credentials", uri: "https://user:secret@github.com/Org/repo.git"},
-		{name: "conflicting key", uri: "https://github.com/Org/repo.git", key: "private-key"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			var b Backend
 			err := b.Init(context.Background(), config.ApplicationConfiguration{Git: config.GitConfig{
-				Uri: tt.uri, Token: "test-token", PrivateKey: tt.key,
+				Uri: tt.uri, Token: "test-token",
 			}})
 			require.Error(t, err)
 			require.NotContains(t, err.Error(), "test-token")
 			require.NotContains(t, err.Error(), "secret")
 			err = b.Init(context.Background(), config.ApplicationConfiguration{Git: config.GitConfig{
-				Uri: tt.uri, TokenFile: "token", PrivateKey: tt.key,
+				Uri: tt.uri, TokenFile: "token",
 			}})
 			require.Error(t, err)
 		})
@@ -135,6 +132,33 @@ func TestSSHAndUnauthenticatedAuth(t *testing.T) {
 	auth, err := b.authentication(context.Background())
 	require.NoError(t, err)
 	require.Same(t, b.Auth, auth)
+
+	for _, tt := range []struct {
+		name string
+		cfg  config.GitConfig
+	}{
+		{name: "app", cfg: config.GitConfig{GitHubApp: &config.GitHubAppConfig{PrivateKeyFile: "/missing/github-app.pem"}}},
+		{name: "token", cfg: config.GitConfig{Token: "unused-token"}},
+		{name: "token file", cfg: config.GitConfig{TokenFile: "/missing/token"}},
+		{name: "all HTTP modes", cfg: config.GitConfig{Token: "unused-token", TokenFile: "/missing/token", GitHubApp: &config.GitHubAppConfig{}}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.cfg.Uri = "git@github.com:Org/repo.git"
+			tt.cfg.PrivateKey = string(pem.EncodeToMemory(block))
+			tt.cfg.KnownHostsFile = knownHosts
+			require.NoError(t, b.Init(context.Background(), config.ApplicationConfiguration{Git: tt.cfg}))
+			auth, err := b.authentication(context.Background())
+			require.NoError(t, err)
+			require.IsType(t, &gitSSH.PublicKeys{}, auth)
+			require.Nil(t, b.githubApp)
+
+			// Invalid SSH credentials must fail rather than fall back to another mode.
+			tt.cfg.PrivateKey = "invalid-ssh-key"
+			require.Error(t, b.Init(context.Background(), config.ApplicationConfiguration{Git: tt.cfg}))
+			require.Nil(t, b.Auth)
+			require.Nil(t, b.githubApp)
+		})
+	}
 
 	require.NoError(t, b.Init(context.Background(), config.ApplicationConfiguration{}))
 	require.Nil(t, b.Auth)

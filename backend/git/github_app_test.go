@@ -119,7 +119,6 @@ func TestGitHubAppValidation(t *testing.T) {
 	}{
 		{"token", func(c *config.GitConfig) { c.Token = "secret" }},
 		{"token file", func(c *config.GitConfig) { c.TokenFile = "token" }},
-		{"SSH key", func(c *config.GitConfig) { c.PrivateKey = "secret" }},
 		{"HTTP", func(c *config.GitConfig) { c.Uri = "http://github.com/Org/repo.git" }},
 		{"other host", func(c *config.GitConfig) { c.Uri = "https://example.com/Org/repo.git" }},
 		{"embedded credentials", func(c *config.GitConfig) { c.Uri = "https://user:secret@github.com/Org/repo.git" }},

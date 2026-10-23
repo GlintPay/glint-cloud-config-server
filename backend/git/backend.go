@@ -63,6 +63,23 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 func (s *Backend) initAuth() error {
 	s.Auth = nil
 	s.githubApp = nil
+
+	if s.Config.PrivateKey != "" {
+		hostKeyCallback, err := ssh.NewKnownHostsCallback(s.Config.KnownHostsFile)
+		if err != nil {
+			return err
+		}
+
+		publicKeys, err := ssh.NewPublicKeys("git", []byte(strings.TrimSpace(s.Config.PrivateKey)), "")
+		if err != nil {
+			return err
+		}
+
+		publicKeys.HostKeyCallback = hostKeyCallback
+		s.Auth = publicKeys
+		return nil
+	}
+
 	if s.Config.GitHubApp != nil {
 		var err error
 		s.githubApp, err = newGitHubAppAuth(s.Config)
@@ -72,9 +89,6 @@ func (s *Backend) initAuth() error {
 	if s.Config.Token != "" || s.Config.TokenFile != "" {
 		if s.Config.Token != "" && s.Config.TokenFile != "" {
 			return fmt.Errorf("git.token and git.tokenFile are mutually exclusive")
-		}
-		if s.Config.PrivateKey != "" {
-			return fmt.Errorf("git.token or git.tokenFile cannot be combined with git.privateKey")
 		}
 		u, err := url.Parse(s.Config.Uri)
 		if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil {
@@ -92,21 +106,6 @@ func (s *Backend) initAuth() error {
 			}
 		}
 		s.Auth = &http.BasicAuth{Username: "x-access-token", Password: token}
-	}
-
-	if s.Config.PrivateKey != "" {
-		hostKeyCallback, err := ssh.NewKnownHostsCallback(s.Config.KnownHostsFile)
-		if err != nil {
-			return err
-		}
-
-		publicKeys, err := ssh.NewPublicKeys("git", []byte(strings.TrimSpace(s.Config.PrivateKey)), "")
-		if err != nil {
-			return err
-		}
-
-		publicKeys.HostKeyCallback = hostKeyCallback
-		s.Auth = publicKeys
 	}
 
 	return nil
