@@ -5,10 +5,11 @@ type GitConfig struct {
 	Order    int
 
 	Uri            string
-	KnownHostsFile string `json:"knownHostsFile"`
-	PrivateKey     string `json:"privateKey"`
-	Token          string `json:"token"`
-	TokenFile      string `json:"tokenFile"`
+	KnownHostsFile string           `json:"knownHostsFile"`
+	PrivateKey     string           `json:"privateKey"`
+	Token          string           `json:"token"`
+	TokenFile      string           `json:"tokenFile"`
+	GitHubApp      *GitHubAppConfig `json:"githubApp"`
 
 	Basedir                string `json:"basedir"`
 	DisableBaseDirCleaning bool   `json:"disableBaseDirCleaning"`
@@ -23,4 +24,10 @@ type GitConfig struct {
 
 	TimeoutMillis     int64 `json:"timeout"`
 	RefreshRateMillis int64 `json:"refreshRate"`
+}
+
+type GitHubAppConfig struct {
+	ClientID       string `json:"clientId"`
+	InstallationID int64  `json:"installationId"`
+	PrivateKeyFile string `json:"privateKeyFile"`
 }

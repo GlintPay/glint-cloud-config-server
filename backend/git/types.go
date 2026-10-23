@@ -16,6 +16,7 @@ type Backend struct {
 	EnableTrace bool
 
 	commitsLock sync.RWMutex
+	githubApp   *githubAppAuth
 
 	YamlContext filetypes.YamlContext
 }
