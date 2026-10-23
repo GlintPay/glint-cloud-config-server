@@ -61,7 +61,7 @@ func TestGitEnvironmentIgnoresMalformedAppWithSSH(t *testing.T) {
 }
 
 func TestGitEnvironmentPreservesYAMLAppSettings(t *testing.T) {
-	for _, name := range []string{"GIT_GITHUB_APP_CLIENT_ID", "GIT_GITHUB_APP_INSTALLATION_ID", "GIT_GITHUB_APP_PRIVATE_KEY_FILE"} {
+	for _, name := range []string{"GIT_PRIVATE_KEY", "GIT_GITHUB_APP_CLIENT_ID", "GIT_GITHUB_APP_INSTALLATION_ID", "GIT_GITHUB_APP_PRIVATE_KEY_FILE"} {
 		t.Setenv(name, "")
 	}
 	emptyApp := GitConfig{GitHubApp: &GitHubAppConfig{}}
