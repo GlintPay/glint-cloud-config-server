@@ -36,11 +36,22 @@ type GitHubAppConfig struct {
 
 // ReadEnvironment overrides Git settings after loading application.yml.
 func (g *GitConfig) ReadEnvironment() error {
+	common := *g
+	common.GitHubApp = nil
+	if err := env.Parse(&common); err != nil {
+		return err
+	}
+	common.GitHubApp = g.GitHubApp
+	*g = common
+	if g.PrivateKey != "" {
+		return nil
+	}
+
 	hasAppConfig := g.GitHubApp != nil
 	if !hasAppConfig {
 		g.GitHubApp = &GitHubAppConfig{}
 	}
-	if err := env.Parse(g); err != nil {
+	if err := env.Parse(g.GitHubApp); err != nil {
 		return err
 	}
 	if !hasAppConfig && *g.GitHubApp == (GitHubAppConfig{}) {

@@ -36,7 +36,28 @@ func TestGitEnvironment(t *testing.T) {
 	require.Equal(t, "/tmp/config", cfg.Basedir)
 
 	t.Setenv("GIT_GITHUB_APP_INSTALLATION_ID", "invalid")
+	require.NoError(t, cfg.ReadEnvironment())
+	t.Setenv("GIT_PRIVATE_KEY", "")
+	cfg.PrivateKey = ""
 	require.Error(t, cfg.ReadEnvironment())
+}
+
+func TestGitEnvironmentIgnoresMalformedAppWithSSH(t *testing.T) {
+	for _, source := range []string{"yaml", "environment"} {
+		t.Run(source, func(t *testing.T) {
+			t.Setenv("GIT_PRIVATE_KEY", "")
+			t.Setenv("GIT_GITHUB_APP_INSTALLATION_ID", "invalid")
+			cfg := GitConfig{GitHubApp: &GitHubAppConfig{ClientID: "from-yaml", InstallationID: 123}}
+			if source == "yaml" {
+				cfg.PrivateKey = "yaml-ssh-key"
+			} else {
+				t.Setenv("GIT_PRIVATE_KEY", "runtime-ssh-key")
+			}
+			require.NoError(t, cfg.ReadEnvironment())
+			require.NotEmpty(t, cfg.PrivateKey)
+			require.Equal(t, int64(123), cfg.GitHubApp.InstallationID)
+		})
+	}
 }
 
 func TestGitEnvironmentPreservesYAMLAppSettings(t *testing.T) {
