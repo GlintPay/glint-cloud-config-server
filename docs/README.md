@@ -67,6 +67,9 @@ The aims for our project are:
       force-pull: false
       show-progress: false  # log clones and pulls
       refreshRate: 0        # default = 0 secs => Fetch updated configuration from the Git repo every time it is requested
+      connectTimeout: 5000  # ms; dial and TLS handshake limit (default 5000)
+      startupRetries: 5     # retries of a failed startup clone (transient errors only); negative disables
+      startupRetryBackoff: 1000  # initial delay in ms, doubling per attempt (capped at 30s)
 
 ### GitHub personal access token authentication
 

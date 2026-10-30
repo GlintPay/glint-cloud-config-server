@@ -22,6 +22,14 @@ type GitConfig struct {
 	CloneOnStart bool `json:"clone-on-start"`
 	ForcePull    bool `json:"force-pull"`
 
+	// ConnectTimeoutMillis bounds the TCP dial and TLS handshake to the remote (default 5000).
+	ConnectTimeoutMillis int64 `json:"connectTimeout"`
+
+	// StartupRetries is the number of retries after a failed startup clone (default 5, negative disables).
+	StartupRetries int `json:"startupRetries"`
+	// StartupRetryBackoffMillis is the initial delay between startup retries, doubling each attempt (default 1000).
+	StartupRetryBackoffMillis int64 `json:"startupRetryBackoff"`
+
 	ShowProgress bool `json:"show-progress"`
 
 	TimeoutMillis     int64 `json:"timeout"`

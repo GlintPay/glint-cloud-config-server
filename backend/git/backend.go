@@ -2,8 +2,11 @@ package git
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"net"
+	stdhttp "net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -19,6 +22,8 @@ import (
 	goGitConfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport"
+	gitclient "github.com/go-git/go-git/v5/plumbing/transport/client"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/rs/zerolog/log"
@@ -28,6 +33,7 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 	s.Config = config.Git
 
 	s.YamlContext = filetypes.YamlContext{}
+	installHTTPSTransport(time.Duration(s.Config.ConnectTimeoutMillis) * time.Millisecond)
 	if err := s.initAuth(); err != nil {
 		return err
 	}
@@ -35,7 +41,7 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 	if s.Config.CloneOnStart {
 		log.Debug().Msg("Clone on startup...")
 
-		if e := s.connect(ctxt, "", !s.Config.DisableBaseDirCleaning); e != nil {
+		if e := s.connectWithRetry(ctxt, "", !s.Config.DisableBaseDirCleaning); e != nil {
 			return e
 		}
 	}
@@ -58,6 +64,60 @@ func (s *Backend) Init(ctxt context.Context, config config.ApplicationConfigurat
 	}
 
 	return nil
+}
+
+// installHTTPSTransport replaces go-git's default HTTPS client with one that fails fast on dial and
+// TLS handshake (the stock 10s limits are slow to give up, and retries make short ones cheap).
+// Transfer time is deliberately unbounded here.
+func installHTTPSTransport(timeout time.Duration) {
+	if timeout <= 0 {
+		timeout = 5 * time.Second
+	}
+	tr := stdhttp.DefaultTransport.(*stdhttp.Transport).Clone()
+	tr.DialContext = (&net.Dialer{Timeout: timeout, KeepAlive: 30 * time.Second}).DialContext
+	tr.TLSHandshakeTimeout = timeout
+	gitclient.InstallProtocol("https", http.NewClient(&stdhttp.Client{Transport: tr}))
+}
+
+// connectWithRetry retries transient failures (e.g. TLS handshake timeouts) with exponential backoff,
+// so that a brief network blip at startup does not crash-loop the process.
+func (s *Backend) connectWithRetry(ctxt context.Context, branch string, cleanExisting bool) error {
+	retries := s.Config.StartupRetries
+	if retries == 0 {
+		retries = 5
+	}
+	backoff := time.Duration(s.Config.StartupRetryBackoffMillis) * time.Millisecond
+	if backoff <= 0 {
+		backoff = time.Second
+	}
+
+	for attempt := 0; ; attempt++ {
+		err := s.connect(ctxt, branch, cleanExisting)
+		if err == nil || attempt >= retries || !isTransient(err) {
+			return err
+		}
+
+		log.Warn().Err(err).Msgf("Git connect failed (attempt %d of %d); retrying in %v", attempt+1, retries+1, backoff)
+		select {
+		case <-ctxt.Done():
+			return ctxt.Err()
+		case <-time.After(backoff):
+		}
+		backoff = min(backoff*2, 30*time.Second)
+	}
+}
+
+// isTransient reports whether err is worth retrying; credential and missing-repository errors are not.
+func isTransient(err error) bool {
+	switch {
+	case errors.Is(err, transport.ErrAuthenticationRequired),
+		errors.Is(err, transport.ErrAuthorizationFailed),
+		errors.Is(err, transport.ErrRepositoryNotFound),
+		errors.Is(err, transport.ErrEmptyRemoteRepository),
+		errors.Is(err, context.Canceled):
+		return false
+	}
+	return true
 }
 
 func (s *Backend) initAuth() error {
