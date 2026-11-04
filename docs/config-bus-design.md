@@ -82,13 +82,20 @@ Change event (identifiers only, never values):
 
 ```json
 {
+  "id": "<unique event id>",
   "version": "<commit sha>",
   "previous": "<commit sha>",
   "applications": ["payments"],
   "profiles": ["prod"],
+  "paths": ["payments-prod.yml"],
   "timestamp": "2026-01-01T00:00:00Z"
 }
 ```
+
+* `id` uniquely identifies the *event*. A catch-up or re-published event for the same `version` gets a new `id`.
+  Clients compare `version` to decide whether anything needs applying, and use `id` to correlate status reports.
+* `paths` lists the changed files. It is informational: it helps with debugging and lets a client skip a reload if
+  nothing relevant to it changed. Clients must not depend on it being present.
 
 Delivery is at-most-once. Clients must therefore also run a slow periodic check against gccs (compare the applied
 version with the current one), which doubles as the backstop for missed events.
@@ -115,7 +122,8 @@ Further rules:
   non-reloadable field is not applied silently: the client reports `restart-required`.
 * **Optional post-apply check.** Keep the previous config in memory for a grace window and roll back automatically if
   a user-supplied health check fails. Rollback is in-memory, never an exit.
-* **De-duplicate** events by `version`; ignore versions already applied or older than the current one.
+* **De-duplicate** events: ignore an `id` already seen, and ignore versions already applied or older than the
+  current one.
 * **Jitter** the re-fetch by a random delay so that a broad change does not stampede gccs.
 * **Do not retry** a rejected version in a tight loop. Wait for the next version or the slow periodic check.
 * **Never log values.** Rejection reasons name the field path and the rule broken, not the data.
@@ -204,6 +212,25 @@ recall events already sent; rollback is a git revert, which produces a new versi
 * Bus: versions detected, published, withheld (with reason), breaker state, lastGood per application.
 * Clients: applied version gauge, reload outcome counters by state, time to apply.
 * Alerts: rejection on any instance; applied-version divergence beyond a window; fallback in use; breaker open.
+
+## Differences from Spring Cloud Bus
+
+This design borrows the general shape of Spring Cloud Bus (events broadcast on a message bus, changed paths mapped to
+applications, optional acknowledgements) but departs from it deliberately in several places. Readers familiar with
+Spring should note:
+
+| Area | Spring Cloud Bus / Config Client | This design |
+| --- | --- | --- |
+| Event payload | Some event types can carry property key/values | Identifiers only; values are always re-fetched through the authenticated gccs API |
+| Fetch on change | Client fetches whatever the label currently resolves to | Client fetches pinned to the event's commit `version`, so a newer commit cannot race the notification |
+| Applying a change | Environment is refreshed, then bound properties and refresh-scoped beans are rebuilt | Complete candidate is built and validated first, then swapped atomically; failure leaves the live config untouched |
+| Failure behaviour | A bad value can surface during rebinding, after the environment has changed | Rejection never affects process health; last-known-good keeps serving |
+| Acknowledgements | Optional "received" event | Status reports the *outcome* (`applied`, `rejected`, `restart-required`, `rolled-back`) |
+| Startup | Fail-fast and retry options | Falls back to last-known-good when the latest config fails validation |
+| Targeting | Destination patterns (`app:profile:instance`) | Subject per application; shared-file changes on a separate opt-in subject |
+
+The server API is unchanged: pinning by `label=<commit>` is part of the standard Config Server contract that gccs
+already implements, so existing clients remain compatible.
 
 ## Implementation phases
 
