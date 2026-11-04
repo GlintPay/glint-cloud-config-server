@@ -66,7 +66,22 @@ Before announcing a version the bus verifies, via the gccs API:
 
 If either fails, nothing is published, and the failure is logged and exposed as a metric. This catches broken YAML,
 unresolvable placeholders and precedence errors, but it cannot catch *semantic* errors, because gccs does not know
-client schemas. That is the clients' job, below.
+client schemas. It also cannot catch errors that only arise when several applications are loaded *together* by one
+consumer (see below). That is the clients' job, below.
+
+## Consumers and load sets
+
+A client (a *consumer*) typically loads several configuration applications in one request, e.g. its own plus a shared
+one plus `application`, and resolves them for an ordered list of active profiles. Consequences:
+
+* A consumer subscribes to the `changed` subject of **every** application in its load set, and matches the event's
+  `profiles` against its own active profile list. A change to one file can therefore reach several different consumers.
+* Validation may span applications in the load set (e.g. a shared schedule that must reference names declared by the
+  consumer's own config). The same change can be valid for one consumer and invalid for another. **Partial rejection
+  across consumers is a normal outcome**, not a fleet-wide fault.
+* Status and last-known-good are therefore tracked per *consumer*, not per configuration application.
+* Falling back to last-known-good pins the **whole load set** to a single commit, so a consumer never mixes an old
+  shared file with a new private one.
 
 ## Events
 
@@ -76,7 +91,7 @@ Subject layout (prefix configurable):
 | --- | --- |
 | `gccs.config.changed.<app>` | App-specific change |
 | `gccs.config.changed._shared` | Shared files changed; opt-in subscription |
-| `gccs.config.status.<app>` | Client acknowledgements |
+| `gccs.config.status.<consumer>` | Client status reports, keyed by the consuming service |
 
 Change event (identifiers only, never values):
 
@@ -106,20 +121,57 @@ This is the part that matters most.
 
 ### Apply: candidate, validate, swap
 
-On an event, a client must never mutate its live config.
+On an event, a client must never mutate live config in place.
 
 1. Fetch the configuration pinned to the event's `version`. (Pinning avoids racing a newer commit.)
-2. Build a complete candidate and run the same validation used at startup.
-3. If valid, swap atomically so readers see the old or the new config, never a mix.
-4. If invalid, keep the last-known-good config and report the rejection.
+2. Build a complete candidate and run the same validation used at startup. Startup validation can have several
+   phases (structural checks, then checks needing runtime state); the candidate must pass all of them.
+3. For each watched group (below) whose values changed, validate it **in the context of the candidate**, then apply it
+   atomically so readers see the old or the new value, never a mix.
+4. If a group is invalid, keep its current value and report the rejection. Other groups are unaffected.
+
+### Granularity: watched groups
+
+Reloading a whole configuration object is usually impractical: it is captured by many components, and most of it
+(connection settings, registries, anything consumed once at startup) cannot change in a live process. Instead,
+clients register **watched groups**: a set of configuration paths that are validated and applied together.
+
+```go
+// Illustrative API only.
+h := Watch[Schedules](loader, "schedules",
+    Validate(func(candidate Schedules, ctx Candidate) error { … }), // may inspect other groups and fixed values
+    OnApply(func(old, new Schedules) { … }))                         // rebuild derived state
+current := h.Get()                                                  // atomic read
+```
+
+* The unit is a *group*, not necessarily a single property. Related values (a schedule and the names it refers to; a
+  pair of buffers) must change together, because applying them one at a time exposes transient states that are
+  invalid. A single path is just a group of one.
+* A client must read through a **handle with an atomic getter**, not through a pointer that the library writes to.
+  In-place writes to a field, and especially to a slice or map, race with concurrent readers.
+* Paths are given explicitly; a pointer to a field does not identify its key. Lists arrive flattened, so a list is
+  watched by prefix.
+* Validators receive the candidate values of the other watched groups plus the current values of everything fixed.
+* `OnApply` rebuilds derived state; the group's value alone is rarely the whole story.
+* Registering a group is the declaration that it is reloadable. Everything else is restart-required.
+* Because groups succeed or fail independently, a process can run groups from different commits. Status therefore
+  reports versions per group (below), and startup fallback (below) is the mechanism that pins the whole load set.
 
 Further rules:
 
 * **Never fail aggressively.** A rejected or failed reload must not exit the process and must not affect liveness or
   readiness. Degraded config state is reported through logs, metrics and the status subject, not the health probes.
 * **Recover from panics** in the reload path.
-* **Reloadable vs restart-required fields.** Clients declare which fields can change at runtime. A change to a
-  non-reloadable field is not applied silently: the client reports `restart-required`.
+* **Restart-required changes.** A change to a path that is not part of any watched group is not applied silently: the
+  client reports `restart-required`.
+* **Loader libraries must return errors, not exit.** A reload path that can call a fatal-logging function (on a bad
+  override string, a failed validation, a malformed response) defeats the rule above.
+* **Check the response.** Verify the HTTP status and that a version was returned before trusting a body.
+* **Re-apply local overrides.** Anything layered over fetched config (environment-variable overrides, injected
+  properties) must be layered again on each reload, or it will silently disappear.
+* **Beware load-time side effects.** If loading also performs side effects (generating credentials, auto-enabling
+  features), the reload path must not repeat them blindly; separate pure loading from side effects.
+* **Retain the applied version.** The version returned with a fetch is what the client reports; keep it.
 * **Optional post-apply check.** Keep the previous config in memory for a grace window and roll back automatically if
   a user-supplied health check fails. Rollback is in-memory, never an exit.
 * **De-duplicate** events: ignore an `id` already seen, and ignore versions already applied or older than the
@@ -131,17 +183,22 @@ Further rules:
 
 ### Status reporting
 
-Clients publish on `gccs.config.status.<app>`:
+Clients publish on `gccs.config.status.<consumer>`:
 
 ```json
 {
+  "event": "<id of the change event, if triggered by one>",
+  "consumer": "payments",
   "instance": "payments-7f9c",
+  "group": "schedules",
   "version": "<commit sha>",
   "state": "applied | rejected | restart-required | rolled-back",
   "reason": "field path and rule only",
   "timestamp": "2026-01-01T00:00:00Z"
 }
 ```
+
+A consumer's overall state is derived from its groups: it is "at" version V only when every watched group is.
 
 Clients should additionally expose the applied version (a gauge metric, and on any existing diagnostic endpoint) so
 fleet divergence from the latest commit is alertable.
@@ -164,9 +221,10 @@ would hide intended changes such as secret rotations.
 
 ### Last-known-good
 
-The bus maintains a per-application *last-known-good* version. A version is promoted when:
+The bus maintains a per-consumer *last-known-good* version (a commit that the consumer's whole load set resolved and
+applied under). A version is promoted when:
 
-* clients have reported it `applied` (a minimum count, configurable), **and**
+* the consumer's instances have reported every watched group `applied` (a minimum count, configurable), **and**
 * it has run without rollback for a minimum soak time (configurable).
 
 Soak time matters because applications with one or two instances make a count-based quorum a weak signal.
@@ -194,9 +252,11 @@ data:
 
 ## Circuit breaker
 
-If rejections for a version cross a configurable threshold, the bus stops publishing further events for that
-application until a new commit arrives, raises an alert, and may publish an advisory on the status subject. It cannot
-recall events already sent; rollback is a git revert, which produces a new version and a new event.
+If rejections for a version cross a configurable threshold *for a given consumer*, the bus stops publishing further
+events that affect that consumer until a new commit arrives, raises an alert, and may publish an advisory on the
+status subject. Rejections are counted per consumer, because a change one consumer rejects and another applies is
+expected (see "Consumers and load sets"). The bus cannot recall events already sent; rollback is a git revert, which
+produces a new version and a new event.
 
 ## Rollout controls
 
@@ -209,7 +269,7 @@ recall events already sent; rollback is a git revert, which produces a new versi
 
 ## Observability
 
-* Bus: versions detected, published, withheld (with reason), breaker state, lastGood per application.
+* Bus: versions detected, published, withheld (with reason), breaker state, lastGood per consumer.
 * Clients: applied version gauge, reload outcome counters by state, time to apply.
 * Alerts: rejection on any instance; applied-version divergence beyond a window; fallback in use; breaker open.
 
