@@ -44,11 +44,21 @@ jobs:
           docker tag glintpay/glint-cloud-config-server:latest glintpay/glint-cloud-config-server:${{ github.run_number }}
           docker push glintpay/glint-cloud-config-server:${{ github.run_number }}
 
+      - name: Create deploy dispatch token
+        id: deploy-dispatch-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.GLINT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.GLINT_APP_PRIVATE_KEY }}
+          owner: GlintPay
+          repositories: glint-cloud-config-server-deploy
+          permission-contents: write
+
       - name: Announce new image
         uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
         with:
           repository: GlintPay/glint-cloud-config-server-deploy
-          token: ${{ secrets.GLINT_PRIVATE_ACCESS_SECRET }}
+          token: ${{ steps.deploy-dispatch-token.outputs.token }}
           event-type: new-image
           client-payload: '{"run_number": "${{ github.run_number }}", "run_id": "${{ github.run_id }}", "sha": "${{ github.sha }}"}'
 
